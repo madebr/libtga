@@ -1,0 +1,25 @@
+# Process this file with autoconf to produce a configure script.
+AC_INIT
+AM_INIT_AUTOMAKE(libtga, 0.1.0)
+AC_REVISION($Revision: 1.3 $)dnl
+
+AM_CONFIG_HEADER(src/tgaconfig.h)
+AC_PROG_MAKE_SET
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AM_PROG_LIBTOOL
+
+# Checks for header files.
+AC_HEADER_STDC
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_CHECK_SIZEOF(unsigned int)
+AC_C_BIGENDIAN
+AC_C_CONST
+AC_C_INLINE
+
+# AC_CONFIG_FILES([])
+AC_OUTPUT(Makefile src/Makefile examples/Makefile doc/Makefile)

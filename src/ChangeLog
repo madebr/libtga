@@ -1,0 +1,53 @@
+Oct 12 2001
+	-----------------------------
+	--- version 0.1.0 release ---
+	-----------------------------
+
+Oct 11 2001
+	- fixed some compiler warnings
+
+Oct 10 2001
+	- cleanup
+
+Oct 08 2001
+	- added x,y orientation flags, tga.h 
+	- added tga_get_*_orientation() functions, tga.c
+
+Oct 06 2001 
+	- added bool, true, false definitions for C compilers
+	- added tga_is_flag(), tga.c
+                tga_is_compressed(), tga.c
+
+Sep 30 2001
+	- added tga_realloc(), tgamem.c
+
+Sep 22 2001
+	-----------------------------
+	--- version 0.0.9 release ---
+	-----------------------------
+
+Sep 11 2001
+        - fix of tga_write_data (sometimes to many bytes were written)
+        - code cleanup:
+                - saved some temporary vars in tgawrite.c and tgaread.c
+                - made 'num_errors' static
+                - made the tga_copy_* and tga_get_* functions static inline
+
+Sep 08 2001
+	- added tga_write_chunk(), tgawrite.c
+		tga_read_chunk(), tgaread.c
+	- fix in tgaread.c (color map size was calculated wrong)
+
+Sep 07 2001
+	- several bug fixes in tgawrite.c and tgaread.c
+
+Sep 06 2001
+        - changed tga_free(tga_byte*) to tga_free(void*)
+
+Sep 05 2001
+	- added tga_init_ptr(), tga.c
+		tga_cpy_uint_*(), tga.c
+		tga_get_uint_*(), tga.c
+		tga_write_info(), tgawrite.c
+		tga_free_tga(), tgamem.c
+

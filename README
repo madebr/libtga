@@ -1,0 +1,39 @@
+		Libtga release 0.1.0		Oct 12 2001
+
+
+These are the release notes for the Libtga package. The tga library is a
+library to read, write and modify(color transformations, ...) TGA images.
+
+
+COPYING:
+
+  The Libtga is released under GNU Lesser General Public License.
+  All other software (example programs and docs) in this package is released 
+  under GNU General Public License.For more information on the licenses see the
+  the file COPYING in the  project's root directory and the corresponding sub 
+  directories.
+
+INSTALLING:
+
+  Instructions on how to install the package the sources can be found in the 
+  file INSTALL.
+
+PROBLEMS AND BUGS:
+
+  If you want to report a bug or have any problems with this package or want to
+  see a feature in a future release either mail the maintainer or post in one
+  of the message forums on the projects SourceForge home page.
+
+SITES:
+  - Download
+	http://www.sourceforge.net/projects/tgalib
+  - Homepage
+	http://tgalib.sourceforge.net
+  - anonymous CVS
+	cvs -d:pserver:anonymous@cvs.tgalib.sourceforge.net:/cvsroot/tgalib login
+
+	
+AUTHORS:
+
+  Matthias Brueckner <matbrc@yahoo.de>	Maintainer
+
