@@ -76,12 +76,12 @@ VERSION = @VERSION@
 
 lib_LTLIBRARIES = libtga.la
 
-libtga_la_SOURCES = tga.c 			    tgaread.c 			    tgawrite.c
+libtga_la_SOURCES = tga.c 			    tgaread.c 			    tgawrite.c	
 
 
 include_HEADERS = tga.h tgaconfig.h
 
-libtga_la_LDFLAGS = -version-info 1:0:0
+libtga_la_LDFLAGS = -version-info 2:0:0
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = tgaconfig.h
 CONFIG_CLEAN_FILES = 

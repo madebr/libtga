@@ -1,1 +1,2 @@
 SUBDIRS = src examples doc
+EXTRA_DIST=COPYING.LIB COPYING.DOC

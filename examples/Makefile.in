@@ -74,7 +74,7 @@ RANLIB = @RANLIB@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-noinst_PROGRAMS = tgadump 		  tgacpy  		  tgaunmap
+noinst_PROGRAMS = tgadump 		  tgacpy 
 
 
 tgadump_SOURCES = tgadump.c
@@ -82,13 +82,10 @@ tgadump_LDFLAGS = -ltga
 
 tgacpy_SOURCES = tgacpy.c
 tgacpy_LDFLAGS = -ltga
-
-tgaunmap_SOURCES = tgaunmap.c
-tgaunmap_LDFLAGS = -ltga
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../src/tgaconfig.h
 CONFIG_CLEAN_FILES = 
-noinst_PROGRAMS =  tgadump$(EXEEXT) tgacpy$(EXEEXT) tgaunmap$(EXEEXT)
+noinst_PROGRAMS =  tgadump$(EXEEXT) tgacpy$(EXEEXT)
 PROGRAMS =  $(noinst_PROGRAMS)
 
 
@@ -102,9 +99,6 @@ tgadump_DEPENDENCIES =
 tgacpy_OBJECTS =  tgacpy.$(OBJEXT)
 tgacpy_LDADD = $(LDADD)
 tgacpy_DEPENDENCIES = 
-tgaunmap_OBJECTS =  tgaunmap.$(OBJEXT)
-tgaunmap_LDADD = $(LDADD)
-tgaunmap_DEPENDENCIES = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -117,8 +111,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(tgadump_SOURCES) $(tgacpy_SOURCES) $(tgaunmap_SOURCES)
-OBJECTS = $(tgadump_OBJECTS) $(tgacpy_OBJECTS) $(tgaunmap_OBJECTS)
+SOURCES = $(tgadump_SOURCES) $(tgacpy_SOURCES)
+OBJECTS = $(tgadump_OBJECTS) $(tgacpy_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -191,10 +185,6 @@ tgadump$(EXEEXT): $(tgadump_OBJECTS) $(tgadump_DEPENDENCIES)
 tgacpy$(EXEEXT): $(tgacpy_OBJECTS) $(tgacpy_DEPENDENCIES)
 	@rm -f tgacpy$(EXEEXT)
 	$(LINK) $(tgacpy_LDFLAGS) $(tgacpy_OBJECTS) $(tgacpy_LDADD) $(LIBS)
-
-tgaunmap$(EXEEXT): $(tgaunmap_OBJECTS) $(tgaunmap_DEPENDENCIES)
-	@rm -f tgaunmap$(EXEEXT)
-	$(LINK) $(tgaunmap_LDFLAGS) $(tgaunmap_OBJECTS) $(tgaunmap_LDADD) $(LIBS)
 
 tags: TAGS
 

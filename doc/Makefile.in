@@ -75,6 +75,7 @@ STRIP = @STRIP@
 VERSION = @VERSION@
 
 SUBDIRS = api
+EXTRA_DIST = COPYING.DOC
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../src/tgaconfig.h
 CONFIG_CLEAN_FILES = 

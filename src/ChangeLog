@@ -1,0 +1,61 @@
+2002-03-29  Matthias Brueckner <matbrc@gmx.de>
+	
+	- finally fixed RLE encoding and decoding
+	- several minor bug fixes
+
+	
+2002-03-28  Matthias Brueckner <matbrc@gmx.de>
+
+	- TGAIsMapped() and TGAIsEncoded() are now macros 
+	  (TGA_IS_MAPPED and TGA_IS_ENCODED)
+	- clean-up and preparation for 0.1.7 release
+	
+2002-03-27  Matthias Brueckner <matbrc@gmx.de>
+
+	- simplified error handling
+	- fixed several minor bugs
+	- changed TGAHeader (descriptor byte -> alpha, flipHorz, flipVert)
+	
+	
+2002-03-22  Matthias Brueckner <matbrc@gmx.de>
+
+	- clean-up
+	- checked currently implemented parts of the TGA file format specs
+	  for full specification compliance
+
+	  
+2002-03-17  Matthias Brueckner <matbrc@gmx.de>
+	
+	- added TGA_CAN_SWAP macro
+
+	
+2002-03-08  Matthias Brueckner <matbrc@gmx.de>
+	
+	- added TGA_ALPHA, TGA_FLIP_HORZ and TGA_FLIP_VERT flags
+
+	
+2002-03-02  Matthias Brueckner <matbrc@gmx.de>
+
+	- replaced bzero() by memset() for ISO compliance
+	- added TGAIsMapped() and TGAbgr2rgb() functions
+	- added size_t and off_t type definitions for non-cygwin win32
+	  environments
+	- changed TGA_LIBTGA_VERSION_* macros to LIBTGA_VERSION_*
+
+
+2002-02-16  Matthias Brueckner <matbrc@gmx.de>
+	
+	- added TGAStrError() for error code -> string translation
+	- updated TGAReadImage() and TGAWriteImage()
+	
+	
+2002-02-15  Matthias Brueckner <matbrc@gmx.de>
+
+	- merged in RLE handling code from The Gimp's TGA Filter:
+	  Copyright (C) 1997 Raphael FRANCOIS and Gordon Matzigkeit
+	- added new read/write interface (TGAReadImage(), TGAWriteImage())
+
+
+2002-02-13  Matthias Brueckner <matbrc@gmx.de> 
+
+	- fixed SIGSEGV in TGAError() and TGAWarning() if NULL pointer is passed

@@ -28,21 +28,11 @@
 /* The size of a `unsigned int', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_INT 4
 
-/* The size of a `unsigned long', as computed by sizeof. */
-#define SIZEOF_UNSIGNED_LONG 4
-
-/* The size of a `unsigned short', as computed by sizeof. */
-#define SIZEOF_UNSIGNED_SHORT 2
-
 /* Define if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.1.6"
-
-/* Define if your processor stores words with the most significant byte first
-   (like Motorola and SPARC, unlike Intel and VAX). */
-/* #undef WORDS_BIGENDIAN */
+#define VERSION "0.1.7"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */
