@@ -21,20 +21,8 @@
  
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
-
 #include "tga.h"
 
-
-off_t
-TGASeek(TGA 	*tga, 
-	off_t 	 off, 
-	int 	 whence)
-{
-	fseek(tga->fd, off, whence);
-	tga->off = ftell(tga->fd);
-	return tga->off;
-}
 
 TGA*
 TGAOpen(char *file, 
@@ -48,15 +36,6 @@ TGAOpen(char *file,
 		TGA_ERROR(tga, TGA_OOM);
 		return NULL;
 	}
-		
-	tga->name = (char*)malloc(strlen(file));
-	if (!tga->name) {
-		TGA_ERROR(tga, TGA_OOM);
-		free(tga);
-		return NULL;
-	}
-	
-	strcpy(tga->name, file);
 	
 	tga->off = 0;
 
@@ -71,32 +50,77 @@ TGAOpen(char *file,
 	return tga;
 }
 
-void
-TGAbgr2rgb(tbyte *data, size_t size, size_t bytes)
+
+TGA*
+TGAOpenFd(FILE *fd)
 {
-	size_t i;
-	tbyte  tmp;
-	
-	for (i = 0; i < size; i += bytes) {
-		tmp = data[i];
-		data[i] = data[i + 2];
-		data[i + 2] = tmp;
+	TGA *tga;
+
+	tga = (TGA*)malloc(sizeof(TGA));
+	if (!tga) {
+		TGA_ERROR(tga, TGA_OOM);
+		return NULL;
 	}
+
+	if (!fd) {
+		TGA_ERROR(tga, TGA_OPEN_FAIL);
+		free(tga);
+		return NULL;
+	}
+
+	tga->off = ftell(fd);
+	if(tga->off == -1) {
+		TGA_ERROR(tga, TGA_OPEN_FAIL);
+		free(tga);
+		return NULL;
+	}
+	
+	tga->fd = fd;
+	tga->last = TGA_OK;
+	return tga;
 }
+
 
 void 
 TGAClose(TGA *tga)
 {
 	if (tga) {
 		fclose(tga->fd);
-		free(tga->name);
 		free(tga);
 	}
 }
+
 
 char*
 TGAStrError(tuint8 code)
 {
 	if (code >= TGA_ERRORS) code = TGA_ERROR;
-	return tga_error_strings[code - 1];
+	return tga_error_strings[code];
+}
+
+
+tlong
+__TGASeek(TGA  *tga, 
+	  tlong off, 
+	  int   whence)
+{
+	fseek(tga->fd, off, whence);
+	tga->off = ftell(tga->fd);
+	return tga->off;
+}
+
+
+void
+__TGAbgr2rgb(tbyte  *data, 
+	     size_t  size, 
+	     size_t  bytes)
+{
+	size_t i;
+	tbyte tmp;
+	
+	for (i = 0; i < size; i += bytes) {
+		tmp = data[i];
+		data[i] = data[i + 2];
+		data[i + 2] = tmp;
+	}
 }

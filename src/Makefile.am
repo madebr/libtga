@@ -6,4 +6,4 @@ libtga_la_SOURCES = tga.c 	\
 
 include_HEADERS = tga.h tgaconfig.h
 
-libtga_la_LDFLAGS = -version-info 2:0:0
+libtga_la_LDFLAGS = -version-info 3:0:0

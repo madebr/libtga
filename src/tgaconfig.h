@@ -32,13 +32,10 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.1.7"
+#define VERSION "1.0.0"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */
-
-/* Define to `long' if <sys/types.h> does not define. */
-/* #undef off_t */
 
 /* Define to `unsigned' if <sys/types.h> does not define. */
 /* #undef size_t */

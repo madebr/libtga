@@ -1,5 +1,11 @@
+2002-05-28   Matthias Brueckner <matbrc@gmx.de>
+	* KNOWN_BUGS: created
+	* doc/api/: removed directory, api.sgml now in doc/
+	* examples/decode.c, examples/encode.c: created
+	* examples/tgacpy.c: removed
+	* acinclude.m4: created
+	* configure.in: generation of debug symbols is now disabled by
+	default (enable with --enable-debug)
 
-See the ChangeLog files in the sub directories:
-	src/ChangeLog
-	doc/ChangeLog
-	examples/ChangeLog
+	
+See also src/ChangeLog

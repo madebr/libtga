@@ -10,6 +10,13 @@ dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
 dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
+dnl this defines the LIBTGA_DEBUG macro which adds the --enable-debug
+dnl option to ./configure
+AC_DEFUN(LIBTGA_DEBUG, [AC_ARG_ENABLE(debug,
+   AC_HELP_STRING([--enable-debug], [generate debug symbols (default=no)]),
+		  ac_cv_enable_debug=$withval, ac_cv_enable_debug=no)])
+
+
 # Do all the work for Automake.  This macro actually does too much --
 # some checks are only needed if your package does certain things.
 # But this isn't really a big deal.

@@ -81,7 +81,7 @@ libtga_la_SOURCES = tga.c 			    tgaread.c 			    tgawrite.c
 
 include_HEADERS = tga.h tgaconfig.h
 
-libtga_la_LDFLAGS = -version-info 2:0:0
+libtga_la_LDFLAGS = -version-info 3:0:0
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = tgaconfig.h
 CONFIG_CLEAN_FILES = 
@@ -282,6 +282,9 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+tga.lo tga.o : tga.c tga.h tgaconfig.h
+tgaread.lo tgaread.o : tgaread.c tga.h tgaconfig.h
+tgawrite.lo tgawrite.o : tgawrite.c tga.h tgaconfig.h
 
 info-am:
 info: info-am

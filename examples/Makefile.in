@@ -74,18 +74,21 @@ RANLIB = @RANLIB@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-noinst_PROGRAMS = tgadump 		  tgacpy 
+noinst_PROGRAMS = tgadump 		  encode  		  decode
 
 
 tgadump_SOURCES = tgadump.c
 tgadump_LDFLAGS = -ltga
 
-tgacpy_SOURCES = tgacpy.c
-tgacpy_LDFLAGS = -ltga
+encode_SOURCES = encode.c
+encode_LDFLAGS = -ltga
+
+decode_SOURCES = decode.c
+decode_LDFLAGS = -ltga
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../src/tgaconfig.h
 CONFIG_CLEAN_FILES = 
-noinst_PROGRAMS =  tgadump$(EXEEXT) tgacpy$(EXEEXT)
+noinst_PROGRAMS =  tgadump$(EXEEXT) encode$(EXEEXT) decode$(EXEEXT)
 PROGRAMS =  $(noinst_PROGRAMS)
 
 
@@ -96,9 +99,12 @@ LIBS = @LIBS@
 tgadump_OBJECTS =  tgadump.$(OBJEXT)
 tgadump_LDADD = $(LDADD)
 tgadump_DEPENDENCIES = 
-tgacpy_OBJECTS =  tgacpy.$(OBJEXT)
-tgacpy_LDADD = $(LDADD)
-tgacpy_DEPENDENCIES = 
+encode_OBJECTS =  encode.$(OBJEXT)
+encode_LDADD = $(LDADD)
+encode_DEPENDENCIES = 
+decode_OBJECTS =  decode.$(OBJEXT)
+decode_LDADD = $(LDADD)
+decode_DEPENDENCIES = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -111,8 +117,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(tgadump_SOURCES) $(tgacpy_SOURCES)
-OBJECTS = $(tgadump_OBJECTS) $(tgacpy_OBJECTS)
+SOURCES = $(tgadump_SOURCES) $(encode_SOURCES) $(decode_SOURCES)
+OBJECTS = $(tgadump_OBJECTS) $(encode_OBJECTS) $(decode_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -182,9 +188,13 @@ tgadump$(EXEEXT): $(tgadump_OBJECTS) $(tgadump_DEPENDENCIES)
 	@rm -f tgadump$(EXEEXT)
 	$(LINK) $(tgadump_LDFLAGS) $(tgadump_OBJECTS) $(tgadump_LDADD) $(LIBS)
 
-tgacpy$(EXEEXT): $(tgacpy_OBJECTS) $(tgacpy_DEPENDENCIES)
-	@rm -f tgacpy$(EXEEXT)
-	$(LINK) $(tgacpy_LDFLAGS) $(tgacpy_OBJECTS) $(tgacpy_LDADD) $(LIBS)
+encode$(EXEEXT): $(encode_OBJECTS) $(encode_DEPENDENCIES)
+	@rm -f encode$(EXEEXT)
+	$(LINK) $(encode_LDFLAGS) $(encode_OBJECTS) $(encode_LDADD) $(LIBS)
+
+decode$(EXEEXT): $(decode_OBJECTS) $(decode_DEPENDENCIES)
+	@rm -f decode$(EXEEXT)
+	$(LINK) $(decode_LDFLAGS) $(decode_OBJECTS) $(decode_LDADD) $(LIBS)
 
 tags: TAGS
 
@@ -230,6 +240,10 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+decode.o: decode.c ../src/tga.h ../src/tgaconfig.h
+encode.o: encode.c ../src/tga.h ../src/tgaconfig.h
+tgacpy.o: tgacpy.c ../src/tga.h ../src/tgaconfig.h
+tgadump.o: tgadump.c ../src/tga.h ../src/tgaconfig.h
 
 info-am:
 info: info-am

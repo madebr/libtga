@@ -20,19 +20,15 @@
  */
  
 #include <stdio.h>
-#include <sys/types.h>
-
+#include <stdlib.h>
 #include "tga.h"
 
 
-int TGAReadRLE(TGA *tga, tbyte *buf);
-
-
 size_t
-TGARead(TGA 	*tga, 
-	tbyte 	*buf,
-	size_t 	 size, 
-	size_t 	 n)
+TGARead(TGA    *tga, 
+	tbyte  *buf,
+	size_t 	size, 
+	size_t 	n)
 {
 	size_t read = fread(buf, size, n, tga->fd);
 	tga->off = ftell(tga->fd);
@@ -40,18 +36,18 @@ TGARead(TGA 	*tga,
 }
 
 int 
-TGAReadImage(TGA 	*tga, 
-	     TGAData	*data)
+TGAReadImage(TGA     *tga, 
+	     TGAData *data)
 {
-	if(!tga) return 0;
+	if (!tga) return 0;
 
-	if (!TGAReadHeader(tga)) {
+	if (TGAReadHeader(tga) != TGA_OK) {
 		TGA_ERROR(tga, tga->last);
 		return 0;
 	}
 
 	if ((data->flags & TGA_IMAGE_ID) && tga->hdr.id_len != 0) {
-		if (!TGAReadImageId(tga, &data->img_id)) {
+		if (TGAReadImageId(tga, &data->img_id) != TGA_OK) {
 			data->flags &= ~TGA_IMAGE_ID;
 			TGA_ERROR(tga, tga->last);
 		}
@@ -83,31 +79,31 @@ TGAReadImage(TGA 	*tga,
 		}
 	}
 	tga->last = TGA_OK;
-	return 1;
+	return TGA_OK;
 }
 
 int
-TGAReadHeader(TGA *tga)
+TGAReadHeader (TGA *tga)
 {
 	tbyte *tmp;
 	
 	if (!tga) return 0;
 
-	TGASeek(tga, 0, SEEK_SET);
+	__TGASeek(tga, 0, SEEK_SET);
 	if (tga->off != 0) {
 		TGA_ERROR(tga, TGA_SEEK_FAIL);
 		return 0;
 	}
 
 	tmp = (tbyte*)malloc(TGA_HEADER_SIZE);
-	if(!tmp) {
+	if (!tmp) {
 		TGA_ERROR(tga, TGA_OOM);
 		return 0;
 	}
 		
 	memset(tmp, 0, TGA_HEADER_SIZE);
 		
-	if(!TGARead(tga, tmp, TGA_HEADER_SIZE, 1)) {
+	if (!TGARead(tga, tmp, TGA_HEADER_SIZE, 1)) {
 		free(tmp);
 		TGA_ERROR(tga, TGA_READ_FAIL);
 		return 0;
@@ -124,23 +120,41 @@ TGAReadHeader(TGA *tga)
 	tga->hdr.width 		= tmp[12] + tmp[13] * 256;
 	tga->hdr.height 	= tmp[14] + tmp[15] * 256;
 	tga->hdr.depth 		= tmp[16];
-	tga->hdr.alpha		= tmp[17] & TGA_ALPHA;
-	tga->hdr.horz	        = (tmp[17] & TGA_FLIP_HORZ) ?
-			                   TGA_TOP : TGA_BOTTOM;
-	tga->hdr.vert	        = (tmp[17] & TGA_FLIP_VERT) ? 
-			                   TGA_RIGHT : TGA_LEFT;
+	tga->hdr.alpha		= tmp[17] & 0x0f;
+	tga->hdr.horz	        = (tmp[17] & 0x10) ? TGA_TOP : TGA_BOTTOM;
+	tga->hdr.vert	        = (tmp[17] & 0x20) ? TGA_RIGHT : TGA_LEFT;
 
+	if (tga->hdr.map_t && tga->hdr.depth != 8) {
+		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
+		free(tga);
+		free(tmp);
+		return 0;
+	} 
+
+	if (tga->hdr.depth != 8 && 
+	    tga->hdr.depth != 15 && 
+	    tga->hdr.depth != 16 &&
+	    tga->hdr.depth != 24 &&
+	    tga->hdr.depth != 32) 
+	{
+		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
+		free(tga);
+		free(tmp);
+		return 0;
+	}
+
+	free(tmp);
 	tga->last = TGA_OK;
 	return TGA_OK;
 }
 
 int
-TGAReadImageId(TGA	*tga, 
-	       tbyte   **buf)
+TGAReadImageId(TGA    *tga, 
+	       tbyte **buf)
 {
 	if (!tga || tga->hdr.id_len == 0) return 0;
        
-	TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
+	__TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
 	if (tga->off != TGA_HEADER_SIZE) {
 		TGA_ERROR(tga, TGA_SEEK_FAIL);
 		return 0;
@@ -162,19 +176,20 @@ TGAReadImageId(TGA	*tga,
 }
 
 int
-TGAReadColorMap(TGA 	*tga, 
-		tbyte  **buf,
-		tuint32  flags)
+TGAReadColorMap (TGA 	  *tga, 
+		 tbyte   **buf,
+		 tuint32   flags)
 {
-	tuint32 n, off, read;
-
+	tlong i, n, off, read;
+	tbyte tmp, r, g, b;
+ 
 	if (!tga) return 0;
 
 	n = TGA_CMAP_SIZE(tga);
 	if (n <= 0) return 0;
 	
 	off = TGA_CMAP_OFF(tga);
-	if (tga->off != off) TGASeek(tga, off, SEEK_SET);
+	if (tga->off != off) __TGASeek(tga, off, SEEK_SET);
 	if (tga->off != off) {
 		TGA_ERROR(tga, TGA_SEEK_FAIL);
 		return 0;
@@ -192,11 +207,59 @@ TGAReadColorMap(TGA 	*tga,
 	}	
 		
 	if (TGA_CAN_SWAP(tga->hdr.map_entry) && (flags & TGA_RGB)) {
-		TGAbgr2rgb(*buf, TGA_CMAP_SIZE(tga), tga->hdr.map_entry / 8);
+		__TGAbgr2rgb(*buf, TGA_CMAP_SIZE(tga), tga->hdr.map_entry / 8);
+	}
+
+	if (tga->hdr.map_entry == 15 || tga->hdr.map_entry == 16) {
+		for(i = 0; i < read; i += 2) {
+			tmp = *buf[i];
+			*buf[i] = ((((tmp >> 10) & 0x1F) << r) |
+				(((tmp >> 5) & 0x1F) << g) |
+				((tmp & 0x1F) << b));
+		}
 	}
 	
 	tga->last = TGA_OK;
 	return read;
+}
+
+int
+TGAReadRLE(TGA   *tga, 
+	   tbyte *buf)
+{
+	int head;
+	char sample[4];
+	tbyte k, repeat = 0, direct = 0, bytes = tga->hdr.depth / 8;
+	tshort x;
+	tshort width = tga->hdr.width;
+	FILE *fd = tga->fd;
+	
+	if (!tga || !buf) return TGA_ERROR;
+
+	for (x = 0; x < width; ++x) {
+		if (repeat == 0 && direct == 0) {
+			head = getc(fd);
+			if (head == EOF) return TGA_ERROR;
+			if (head >= 128) {
+				repeat = head - 127;
+				if (fread(sample, bytes, 1, fd) < 1) 
+					return TGA_ERROR;
+			} else {
+				direct = head + 1;
+			}
+		}
+		if (repeat > 0) {
+			for (k = 0; k < bytes; ++k) buf[k] = sample[k];
+			--repeat;
+		} else {
+			if (fread(buf, bytes, 1, fd) < 1) return TGA_ERROR;
+			--direct;
+		}
+		buf += bytes;
+	}
+		
+	tga->last = TGA_OK;
+	return TGA_OK;
 }
 
 size_t
@@ -206,16 +269,16 @@ TGAReadScanlines(TGA 	*tga,
 		 size_t  n,
 		 tuint32 flags)
 {	
-	off_t off;
+	tlong i, off;
 	size_t sln_size, read;
-	tuint8 ret;
+	tbyte tmp, r, g, b;
 
 	if (!tga || !buf) return 0;
 
 	sln_size = TGA_SCANLINE_SIZE(tga);
 	off = TGA_IMG_DATA_OFF(tga) + (sln * sln_size);
 	
-	if (tga->off != off) TGASeek(tga, off, SEEK_SET);
+	if (tga->off != off) __TGASeek(tga, off, SEEK_SET);
 	if (tga->off != off) {
 		TGA_ERROR(tga, TGA_SEEK_FAIL);
 		return 0;
@@ -223,8 +286,8 @@ TGAReadScanlines(TGA 	*tga,
 
 	if(TGA_IS_ENCODED(tga)) {
 		for(read = 0; read <= n; ++read) {
-			if(!TGAReadRLE(tga, buf + ((sln + read) * sln_size)))
-				break;
+			if(TGAReadRLE(tga, buf + ((sln + read) * sln_size)) !=
+				TGA_OK) break;
 		}
 		tga->hdr.img_t -= 8;
 	} else {
@@ -236,47 +299,19 @@ TGAReadScanlines(TGA 	*tga,
 	}
 	
 	if (TGA_CAN_SWAP(tga->hdr.depth) && (flags & TGA_RGB)) {
-		TGAbgr2rgb(buf + (sln_size * sln), sln_size * n, 
+		__TGAbgr2rgb(buf + (sln_size * sln), sln_size * n, 
 			   tga->hdr.depth / 8);
 	}
 
+	if (tga->hdr.depth == 15 || tga->hdr.depth == 16) {
+		for(i = 0; i < read; i += 2) {
+			tmp = buf[i];
+			buf[i] = ((((tmp >> 10) & 0x1F) << r) |
+				(((tmp >> 5) & 0x1F) << g) |
+				((tmp & 0x1F) << b));
+		}
+	}
+	
 	tga->last = TGA_OK;
 	return read;
-}
-
-int
-TGAReadRLE(TGA   *tga, 
-	   tbyte *buf)
-{
-	int head;
-	char sample[4];
-	tbyte repeat = 0, direct = 0, k;
-	tbyte bytes = tga->hdr.depth / 8;
-	tshort x;
-
-	if (!tga || !buf) return 0;
-
-	for(x = 0; x < tga->hdr.width; ++x) {
-		if(repeat == 0 && direct == 0) {
-			head = getc(tga->fd);
-			if (head == EOF) return 0;
-			if (head >= 128) {
-				repeat = head - 127;
-				if (fread(sample, bytes, 1, tga->fd) < 1) return 0;
-			} else {
-				direct = head + 1;
-			}
-		}
-		if(repeat > 0) {
-			for (k = 0; k < bytes; ++k) buf[k] = sample[k];
-			--repeat;
-		} else {
-			if (fread(buf, bytes, 1, tga->fd) < 1) return 0;
-			--direct;
-		}
-		buf += bytes;
-	}
-		
-	tga->last = TGA_OK;
-	return TGA_OK;
 }

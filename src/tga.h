@@ -23,8 +23,6 @@
 #define __TGA_H 1
 
 #include <tgaconfig.h>  /* include our config header before anything else */
-#include <stdarg.h>
-#include <sys/types.h>
 #include <stdio.h>
 
 /* Tell C++ that we have C types and declarations. */
@@ -55,7 +53,7 @@
 /* RLE */
 #define TGA_RLE_ENCODE  0x10
 
-/* byte ordering */
+/* color format */
 #define TGA_RGB		0x20
 #define TGA_BGR		0x40
 
@@ -65,44 +63,35 @@
 #define	TGA_LEFT	0x0
 #define	TGA_RIGHT	0x1
 
-/* bit extraction flags */
-#define TGA_ALPHA	0x0f
-#define TGA_FLIP_HORZ	0x10
-#define TGA_FLIP_VERT	0x20
-
 /* version info */
-#define LIBTGA_VER_MAJOR  	0
-#define LIBTGA_VER_MINOR  	1
-#define LIBTGA_VER_PATCH	7
-#define LIBTGA_VER_STRING	"0.1.7"
+#define LIBTGA_VER_MAJOR  	1
+#define LIBTGA_VER_MINOR  	0
+#define LIBTGA_VER_PATCH	0
+#define LIBTGA_VER_STRING	"1.0.0"
 
 /* error codes */
-enum {  TGA_OK = 1, 		/* success */
-	TGA_OOM = 2,		/* out of memory */
-	TGA_OPEN_FAIL = 3,     	
-	TGA_SEEK_FAIL = 4,    
-	TGA_READ_FAIL = 5,     	
-	TGA_WRITE_FAIL = 6,   	
-	TGA_ERROR = 7,		
-	TGA_WARNING = 8,      
-	TGA_UNKNOWN_FORMAT = 9, /* not a valid TGA image */
-	TGA_UNKNOWN_SUB_FORMAT = 10 /* invalid bit depth */
+enum {  TGA_OK = 0, 		/* success */
+	TGA_ERROR,
+	TGA_OOM,		/* out of memory */
+	TGA_OPEN_FAIL,
+	TGA_SEEK_FAIL,
+	TGA_READ_FAIL,
+	TGA_WRITE_FAIL,
+	TGA_UNKNOWN_SUB_FORMAT  /* invalid bit depth */
 };
 
-#define TGA_ERRORS 10	/* total number of error codes */
+#define TGA_ERRORS 8  /* total number of error codes */
 
 /* text strings corresponding to the error codes */
 static char*
 tga_error_strings[] = {
 	"Success",
+	"Error",
 	"Out of memory",
 	"Failed to open file",
 	"Seek failed",
 	"Read failed",
 	"Write failed",
-	"Error",
-	"Warning",
-	"Unknown format",
 	"Unknown sub-format"
 };
 
@@ -113,24 +102,18 @@ tga_error_strings[] = {
 #else
         typedef unsigned long tuint32;
         typedef unsigned int tuint16;
-#endif
+#endif /* SIZEOF_UNSIGNED_INT */
 
 typedef unsigned char tuint8;
 
-/* define types for non-UNIX && non-Cygwin environments */
-#if defined WIN32 && !defined CYGWIN
-# define size_t tuint32
-# define off_t  tuint32
-#endif
-
-
-typedef tuint8        tbyte;
-typedef tuint16	      tshort;
-typedef tuint32	      tlong;
+typedef tuint8  tbyte;
+typedef tuint16	tshort;
+typedef tuint32	tlong;
 
 typedef struct _TGAHeader TGAHeader;
 typedef struct _TGAData	  TGAData;
 typedef struct _TGA	  TGA;
+
 
 typedef void (*TGAErrorProc)(TGA*, int);
 
@@ -148,9 +131,9 @@ struct _TGAHeader {
 	tshort	width;		/* width of image */
 	tshort	height;		/* height of image */
 	tbyte	depth;		/* pixel-depth of image */
-	tuint8  alpha:4;        /* alpha bits */
-	tuint8	horz:1;	        /* horizontal orientation */
-	tuint8	vert:1;	        /* vertical orientation */
+	tbyte   alpha;          /* alpha bits */
+	tbyte	horz;	        /* horizontal orientation */
+	tbyte	vert;	        /* vertical orientation */
 };
 
 /* TGA image data */
@@ -161,14 +144,11 @@ struct _TGAData {
 	tuint32  flags;
 };
 
-/* TGA image representation */
+/* TGA image handle */
 struct _TGA {
-	char*		name;		/* file name */
 	FILE*		fd;		/* file stream */
-
-	off_t		off;		/* current offset in file*/
-	int 		last;		/* last error code */
-
+	tlong		off;		/* current offset in file*/
+	int		last;		/* last error code */
 	TGAHeader	hdr;		/* image header */
 	TGAErrorProc 	error;		/* user-defined error proc */
 };
@@ -178,6 +158,8 @@ __BEGIN_DECLS
 
 
 TGA* TGAOpen __P((char *name, char *mode));
+
+TGA* TGAOpenFd __P((FILE *fd));
 
 
 int TGAReadHeader __P((TGA *tga));
@@ -206,9 +188,9 @@ int TGAWriteImage __P((TGA *tga, TGAData *data));
 
 char* TGAStrError __P((tuint8 code));
 
-off_t TGASeek __P((TGA *tga, off_t off, int whence));
+tlong __TGASeek __P((TGA *tga, tlong off, int whence));
 
-void TGAbgr2rgb __P((tbyte *data, size_t size, size_t bytes));
+void __TGAbgr2rgb __P((tbyte *data, size_t size, size_t bytes));
 
 
 void TGAClose __P((TGA *tga));
@@ -229,10 +211,9 @@ __END_DECLS
 #define TGA_IS_ENCODED(tga)     ((tga)->hdr.img_t > 8 && (tga)->hdr.img_t < 12)
 
 #define TGA_ERROR(tga, code) \
-	if((tga) && (tga)->error) (tga)->error(tga, code);\
-        fprintf(stderr, "Error at %s line %d: %s", __FILE__, __LINE__,\
-		TGAStrError(code));\
-	if(tga) (tga)->last = code\
+if((tga) && (tga)->error) (tga)->error(tga, code);\
+fprintf(stderr, "Libtga:%s:%d: %s\n", __FILE__, __LINE__, TGAStrError(code));\
+if(tga) (tga)->last = code\
 
 
 #endif /* __TGA_H */
