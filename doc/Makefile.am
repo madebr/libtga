@@ -1,1 +1,1 @@
-info_TEXINFOS = libtga.texinfo
+SUBDIRS = api

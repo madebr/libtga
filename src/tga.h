@@ -1,7 +1,7 @@
 /*
  * tga.h - Libtga header
  *
- * Copyright (C) 2001, Matthias Brückner
+ * Copyright (C) 2001-2002, Matthias Brueckner
  * This file is part of the TGA library (libtga).
  *
  * This library is free software; you can redistribute it and/or
@@ -11,12 +11,11 @@
  */
 
 #ifndef __TGA_H
-#define __TGA_H
+#define __TGA_H 1
 
 #include <tgaconfig.h>  /* include our config header before anything else */
-#include <stdio.h>
-#include <malloc.h>
-
+#include <stdarg.h>
+#include <sys/types.h>
 
 /* Tell C++ that we have C types and declarations. */
 #undef __BEGIN_DECLS
@@ -27,9 +26,6 @@
 #else
 # define __BEGIN_DECLS
 # define __END_DECLS
-# define bool int
-# define true 1
-# define false 0
 #endif /* __cplusplus */
 
 /* Some macros to cope with non-ANSI C or C++ compilers. */
@@ -41,25 +37,11 @@
 #endif /* defined STDC_HEADERS || defined __cplusplus */
 
 
-/* error codes */
-#define TGA_OK		0x0
-#define TGA_ERROR	0x1	/* unknown error */
-#define TGA_ERROR_MEM	0x2	/* memory allocation failed */
-#define TGA_ERROR_READ	0x3	/* read operation failed */
-#define TGA_ERROR_WRITE	0x4	/* write operation failed */
-#define TGA_BAD_ARG	0x5	/* invalid argument given to function */
-#define TGA_BAD_FD	0x6	/* invalid file descriptor */
-#define TGA_BAD_FORMAT	0x7	/* invalid format */
-
 /* sections */
-#define	TGA_IMAGE_ID		0x01	/* image id */
-#define TGA_IMAGE_INFO		0x02	/* image header */
-#define TGA_IMAGE_DATA		0x08	/* image data */
-#define TGA_COLOR_MAP		0x10	/* color map */
-
-/* flags */
-#define TGA_FORMAT_NEW	        0x100	/* new tga format */
-#define TGA_FORMAT_OLD	        0x200	/* original tga format */
+#define	TGA_IMAGE_ID	0x01	/* image id */
+#define TGA_IMAGE_INFO	0x02	/* image header */
+#define TGA_IMAGE_DATA	0x04	/* image data */
+#define TGA_COLOR_MAP	0x08	/* color map */
 
 /* orientation */
 #define TGA_BOTTOM	0x01
@@ -67,269 +49,141 @@
 #define	TGA_LEFT	0x04
 #define	TGA_RIGHT	0x08
 
-
 /* version info */
-#define TGA_LIBTGA_VER_MAJOR    0
-#define TGA_LIBTGA_VER_MINOR    1
-#define TGA_LIBTGA_VER_RELEASE  0
-#define TGA_LIBTGA_VER_STRING   "0.1.0"
+#define TGA_LIBTGA_VER_MAJOR  	0
+#define TGA_LIBTGA_VER_MINOR  	1
+#define TGA_LIBTGA_VER_PATCH	6
+#define TGA_LIBTGA_VER_STRING	"0.1.6"
+				/* 1.0.0-pre6 */
+
+/* error codes */
+#define TGA_OK			0x01	/* success */
+#define TGA_BAD_PTR		0x02	/* invalid pointer */
+#define TGA_OOM			0x03	/* out of memory */
+#define TGA_OPEN_FAIL		0x04	/* file open failed */
+#define TGA_SEEK_FAIL		0x05	/* file seek failed */
+#define TGA_READ_FAIL		0x06	/* file read failed */
+#define TGA_WRITE_FAIL		0x07	/* file write failed */
+#define TGA_ERROR		0x08	/* error */
+#define TGA_WARNING		0x09	/* library warning */
+
+#define TGA_ERRORS		9	/* total number of error codes */
+
+/* text strings corresponding to the above error codes */
+static const char*
+tga_error_strings[] = {
+	"Success."
+	"Invalid pointer.",
+	"Out of memory.",
+	"Failed to open file.",
+	"Seek failed.",
+	"Read failed.",
+	"Write failed.",
+	"Error.",
+	"Warning."
+};
 
 
-
-/* Type definitions */
+/* type definitions */
 #if SIZEOF_UNSIGNED_INT == 4
-        typedef unsigned int tga_uint_32;
-        typedef unsigned short tga_uint_16;
+        typedef unsigned int tuint32;
+        typedef unsigned short tuint16;
 #else
-        typedef unsigned long tga_uint_32;
-        typedef unsigned int tga_uint_16;
-#endif
-
-typedef unsigned char tga_uint_8;
-
-typedef tga_uint_8 tga_byte;
-typedef tga_uint_8 tga_err_t;
-typedef tga_uint_8 tga_size_t;
-typedef tga_uint_32 tga_off_t;
+        typedef unsigned long tuint32;
+        typedef unsigned int tuint16;
+#endif /* SIZEOF_UNSIGNED_INT == 4 */
 
 
-struct tga_info {	/* tga info structure */
-	tga_uint_8	id_len;
-	tga_uint_8	map_t;
-	tga_uint_8	img_t;
-	tga_uint_16	map_first_entry;
-	tga_uint_16	map_len;
-	tga_uint_8	map_entry_size;
-	tga_uint_16	x;
-	tga_uint_16	y;
-	tga_uint_16	width;
-	tga_uint_16	height;
-	tga_uint_8	depth;
-	tga_uint_8	desc;
-};
+typedef unsigned char tuint8;
+typedef unsigned char tbyte;
 
-typedef struct tga_info* tga_info_ptr;
 
-typedef struct tga* tga_ptr;
+typedef struct {
+	tuint8	id_len;		/* image id length */
+	tuint8	map_t;		/* color map type */
+	tuint8	img_t;		/* image type */
+	tuint16	map_first;	/* index of first map entry */
+	tuint16	map_len;	/* number of entries in color map */
+	tuint8	map_entry;	/* bit-depth of a cmap entry */
+	tuint16	x;		/* x-coordinate */
+	tuint16	y;		/* y-coordinate */
+	tuint16	width;		/* width of image */
+	tuint16	height;		/* height of image */
+	tuint16	depth;		/* bit-depth of image */
+	tuint16	desc;		/* image descriptor byte */
+} TGAHeader;
 
-typedef void (*tga_err_func)(tga_ptr, char*, tga_err_t);
-typedef void (*tga_io_func)(tga_ptr, void*, tga_uint_32);
-typedef void (*tga_seek_func)(tga_ptr, tga_off_t, tga_off_t);
 
-struct tga {
-	tga_uint_8 *img_id;		/* image id field */
-	tga_uint_8 *img_data;		/* image data */
-	tga_uint_8 *color_map;		/* color map data */
+typedef struct {
+	char*		name;		/* file name */
+	FILE		*fd;		/* file stream */
+	tuint32 	flags;
+	
+	off_t		row;		/* current scanline */
+	off_t		off;		/* current offset in file*/
 
-	tga_err_func err_fn;	/* error function */
-	tga_err_func warn_fn;	/* warn function */
- 	tga_io_func read_fn; 	/* read function */
-	tga_io_func write_fn;	/* write function */
-	tga_seek_func seek_fn;	/* seek function */
+	int 		last;		/* last error code */
 
-        tga_uint_32 flags;	/* flags */
-        tga_byte *sig;  	/* file signature in file footer */
-	tga_byte *io_ptr;	/* IO pointer (e.g FILE*) */
-};
+	TGAHeader	hdr;		/* image header */
+
+	void (*error)(int, char*, va_list);	/* error proc */
+	void (*message)(int, char*, va_list); 	/* message proc */
+
+} TGA;
 
 
 
-static const tga_uint_8 num_errors = 7;
+#define TGA_HEADER_SIZE 	18
+#define TGA_CMAP_SIZE(tga) 	( (tga)->hdr.map_len * (tga)->hdr.map_entry / 8 )
+#define TGA_CMAP_OFF(tga) 	( TGA_HEADER_SIZE + (tga)->hdr.id_len )
+#define TGA_IMG_DATA_OFF(tga) 	( TGA_HEADER_SIZE + (tga)->hdr.id_len + TGA_CMAP_SIZE(tga) )
+#define TGA_IMG_DATA_SIZE(tga)	( (tga)->hdr.width * (tga)->hdr.height * (tga)->hdr.depth / 8 )
+#define TGA_SCANLINE_SIZE(tga)	( (tga)->hdr.width * (tga)->hdr.depth / 8 )
 
-static char *str_errors[7] = {
-	"unknown error",
-	"memory allocation error",
-	"read error",
-	"write error",
-	"bad argument",
-	"bad file descriptor",
-	"bad format"
-};
-
-static const char signature[16] = "TRUEVISION-XFILE";
-
-/* functions */
 
 __BEGIN_DECLS
 
 
-/* read functions */
-void tga_read_tga __P((tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags));
+TGA* TGAOpen __P((char *name, char *mode));
 
-void tga_read_info __P((tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags));
-
-void tga_set_read_fn __P((tga_ptr ptr, tga_io_func read_fn));
-
-void tga_read_chunk __P((tga_ptr ptr, tga_byte *buf, tga_uint_8 len));
-
-void tga_read_data __P((tga_ptr ptr, tga_byte *buf, tga_uint_32 len));
-
-void tga_default_read_data __P((tga_ptr ptr, tga_byte *buf, tga_uint_32 len));
-
-void tga_read_image_data __P((tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags));
+void TGAClose __P((TGA *tga));
 
 
-/* write functions */
-void tga_write_tga __P((tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags));
+size_t TGARead __P((TGA *tga, tbyte *buf, size_t size, size_t n));
 
-void tga_write_info __P((tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags));
+int TGAReadHeader __P((TGA *tga));
 
-void tga_set_write_fn __P((tga_ptr ptr, tga_io_func write_fn));
+int TGAReadImageId __P((TGA *tga, tbyte **id));
 
-void tga_write_data __P((tga_ptr ptr, tga_byte *buf, tga_uint_32 len));
+int TGAReadColorMap __P((TGA *tga, tbyte **cmap));
 
-void tga_default_write_data __P((tga_ptr ptr, tga_byte *buf, tga_uint_32 len));
-
-void tga_write_chunk __P((tga_ptr ptr, tga_byte *buf, tga_uint_8 len));
-
-void tga_write_image_data __P((tga_ptr ptr, tga_info_ptr info, tga_uint_32 len));
+size_t TGAReadScanlines __P((TGA *tga, tbyte *buf, size_t sln, size_t n));
 
 
-/* seek functions */
-void tga_set_seek_fn __P((tga_ptr ptr, tga_seek_func seek_fn)); 
+size_t TGAWrite __P((TGA *tga, const tbyte *buf, size_t size, size_t n));
 
-void tga_seek __P((tga_ptr ptr, tga_off_t off, tga_uint_8 whence));
+int TGAWriteHeader __P((TGA *tga));
 
-void tga_default_seek __P((tga_ptr ptr, tga_off_t off, tga_uint_8 whence));
+int TGAWriteImageId __P((TGA *tga, const tbyte *id));
 
+int TGAWriteColorMap __P((TGA *tga, const tbyte *cmap));
 
-/* error functions */
-char* tga_get_str_error __P((tga_err_t errno));
-
-void tga_error __P((tga_ptr ptr, char *msg, tga_err_t errno));
-
-void tga_default_error __P((tga_ptr ptr, char *msg, tga_err_t errno));
-
-void tga_warning __P((tga_ptr ptr, char *msg, tga_err_t errno));
-
-void tga_default_warning __P((tga_ptr ptr, char *msg, tga_err_t errno));
-
-void tga_set_error_fn __P((tga_ptr ptr, tga_err_func err_fn, tga_err_func warn_fn));
+size_t TGAWriteScanlines __P((TGA *tga, const tbyte *buf, size_t sln, size_t n));
 
 
-/* memory functions */
-void* tga_malloc __P((tga_ptr ptr, tga_uint_32 len));
+void TGAError __P((TGA *tga, int code, char *fmt, ...));
 
-void tga_free __P((void *buf));
-
-void tga_free_tga __P((tga_ptr ptr));
-
-void tga_memcpy __P((const void *src, void *dest, tga_off_t off, tga_uint_32 n));
-
-void* tga_realloc __P((tga_ptr ptr, void *buf, tga_uint_32 size));
+void TGAMessage __P((TGA *tga, int code, char *fmt, ...));
 
 
-/* wrapper functions */
-void tga_set_flag __P((tga_ptr ptr, tga_uint_8 flag));
-
-bool tga_is_flag __P((tga_ptr ptr, tga_uint_8 flag));
-
-bool tga_is_compressed __P((tga_info_ptr info));
+off_t TGASeek __P((TGA *tga, off_t off, int whence));
 
 
-tga_uint_8 tga_get_x_orientation __P((tga_info_ptr info));
+int TGAGetXOrientation __P((TGA *tga));
 
-tga_uint_8 tga_get_y_orientation __P((tga_info_ptr info));
+int TGAGetYOrientation __P((TGA *tga));
 
-
-void tga_init_ptr __P((tga_ptr ptr, 
-			void *io_ptr, 
-			tga_io_func read_fn, 
-			tga_io_func write_fn, 
-			tga_seek_func seek_fn,
-			tga_err_func err_fn,
-			tga_err_func warn_fn));
-
-
-/* utility functions */
-tga_byte* tga_substr __P((tga_ptr ptr, const tga_byte *src, tga_off_t start, tga_off_t end));
-
-void tga_swap_bytes __P((tga_byte *buf));
-
-
-/* little-, big-endian aware byte extract/copy functions */
-
-/* extract 4 bytes from buf */
-static inline tga_uint_32 tga_get_uint_32 __P((tga_byte *buf))
-{
-        tga_uint_32 t;
-#ifdef WORDS_BIGENDIAN
-	t = buf[0];
-	t <<= 24;
-	t |= buf[1];
-	t <<= 16;
-	t |= buf[2];
-	t <<= 8;
-	t |= buf[3];
-#else /* little-endian */
-	t = buf[1];
-	t <<= 24;
-	t |= buf[0];
-	t <<= 16;
-	t |= buf[3];
-	t <<= 8;
-	t |= buf[2];
-#endif /* WORDS_BIGENDIAN */
-	return t;
-}
-
-/* extract 2 bytes from buf */
-static inline tga_uint_16 tga_get_uint_16 __P((tga_byte *buf))
-{
-        tga_uint_16 t;
-#ifdef WORDS_BIGENDIAN
-	t = buf[0];
-	t <<= 8;
-	t |= buf[1];
-#else /* little-endian */
-	t = buf[1];
-	t <<= 8;
-	t |= buf[0];
-#endif /* WORDS_BIGENDIAN */
-	return t;
-}
-
-/* copy 2 bytes from src to dest + off */
-static inline void tga_cpy_uint_16 __P((const tga_byte *src, tga_byte *dest, tga_off_t off))
-{
-#ifndef WORDS_BIGENDIAN
-	dest[off]     = src[0];
-	dest[off + 1] = src[1];
-#else
-	dest[off]     = src[1];
-	dest[off + 1] = src[0];
-#endif /* WORDS_BIGENDIAN */
-}
-
-/* copy 3 bytes from src to dest + off */
-static inline void tga_cpy_uint_24 __P((const tga_byte *src, tga_byte *dest, tga_off_t off))
-{
-#ifdef WORDS_BIGENDIAN
-	dest[off]     = src[0];
-	dest[off + 1] = src[1];
-	dest[off + 2] = src[2];
-#else
-	dest[off]     = src[1];
-	dest[off + 1] = src[0];
-	dest[off + 2] = src[2];
-#endif /* WORDS_BIGENDIAN */
-}
-
-/* copy 4 bytes from src to dest + off */
-static inline void tga_cpy_uint_32 __P((const tga_byte *src, tga_byte *dest, tga_off_t off))
-{
-#ifdef WORDS_BIGENDIAN
-	dest[off]     = src[0];
-	dest[off + 1] = src[1];
-	dest[off + 2] = src[2];
-	dest[off + 3] = src[3];
-#else
-	dest[off]     = src[1];
-	dest[off + 1] = src[0];
-	dest[off + 2] = src[3];
-	dest[off + 3] = src[4];
-#endif /* WORDS_BIGENDIAN */
-}
+int TGAIsEncoded __P((TGA *tga));
 
 
 __END_DECLS

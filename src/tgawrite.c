@@ -1,7 +1,7 @@
 /*
- * tgawrite.c - Write functions
+ * tgawrite.c
  *
- * Copyright (C) 2001, Matthias Brückner
+ * Copyright (C) 2001-2002, Matthias Brueckner
  * This file is part of the TGA library (libtga).
  *
  * This library is free software; you can redistribute it and/or
@@ -10,105 +10,151 @@
  * version 2 of the License, or (at your option) any later version.
  */
 
+#include <stdio.h>
+#include <sys/types.h>
+
 #include "tga.h"
 
 
-/* set user-defined write function */
-void tga_set_write_fn(tga_ptr ptr, tga_io_func write_fn)
+size_t
+TGAWrite(TGA *tga, const tbyte *buf, size_t size, size_t n)
 {
-	if(ptr && write_fn) ptr->write_fn = write_fn;
+	size_t wrote = fwrite(buf, size, n, tga->fd);
+	tga->off = ftell(tga->fd);
+	return wrote;
 }
 
-/* write len bytes from buf */
-void tga_write_data(tga_ptr ptr, tga_byte *buf, tga_uint_32 len)
-{
-	if(ptr->write_fn) ptr->write_fn(ptr, buf, len);
-	else tga_default_write_data(ptr, buf, len);
-}
 
-/* write len bytes from buf (more than 255) */
-void tga_default_write_data(tga_ptr ptr, tga_byte *buf, tga_uint_32 len)
+size_t
+TGAWriteScanlines(TGA *tga, const tbyte *buf, size_t sln, size_t n)
 {
-	tga_uint_32 i = 0;
+	off_t off, wrote, sln_size;
 
-	while(len > 255) {
-		len -= 255;
-		tga_write_chunk(ptr, buf + i, 255);
-		i += 255;
+	if(tga) {
+		if(!buf) {
+			TGAError(tga, TGA_BAD_PTR, "at %s line %d", __FILE__, __LINE__);
+			n = 0;
+		}
+
+		sln_size = TGA_SCANLINE_SIZE(tga);
+		off = TGA_IMG_DATA_OFF(tga) + (sln * sln_size);
+
+		if(tga->off != off) TGASeek(tga, off, SEEK_SET);
+		if(tga->off != off) {
+			TGAError(tga, TGA_SEEK_FAIL, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+			
+		if((wrote = TGAWrite(tga, buf, sln_size, n)) != n)
+			TGAError(tga, TGA_WRITE_FAIL, "at %s line %d.", __FILE__, __LINE__);
+
+	        return wrote;
 	}
-	tga_write_chunk(ptr, buf + i, len);
+	return 0;
 }
 
-/* write len bytes from buf */
-void tga_write_chunk(tga_ptr ptr, tga_byte *buf, tga_uint_8 len)
+
+int
+TGAWriteHeader(TGA *tga)
 {
-	if(ptr->io_ptr) {
-                if(fwrite(buf, 1, len, (FILE*)ptr->io_ptr) != len)
-                        tga_error(ptr, "tga_write_chunk(tgawrite.c)", TGA_ERROR_WRITE);
-        } else
-                tga_error(ptr, "tga_write_chunk(tgawrite.c)", TGA_BAD_FD);
+	tbyte *tmp;
+
+	if(tga) {
+		if(TGASeek(tga, 0, SEEK_SET) != 0) {
+			TGAError(tga, TGA_SEEK_FAIL, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+
+		if(!(tmp = (tbyte*)malloc(18))) {
+			TGAError(tga, TGA_OOM, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+
+		tmp[0] = tga->hdr.id_len;
+		tmp[2] = tga->hdr.img_t;
+		
+		if(tga->hdr.map_t != 0) {
+			tmp[1] = 1;
+			tmp[3] = tga->hdr.map_first % 256;
+			tmp[4] = tga->hdr.map_first /256;
+			tmp[5] = tga->hdr.map_len % 256;
+			tmp[6] = tga->hdr.map_len / 256;
+			tmp[7] = tga->hdr.map_entry;
+		} else {
+			tmp[1] = 0;
+			bzero(tmp + 4, 5);
+		}
+	
+		tmp[8] = tga->hdr.x % 256;
+		tmp[9] = tga->hdr.x / 256;
+		tmp[10] = tga->hdr.y % 256;
+		tmp[11] = tga->hdr.y / 256;
+		tmp[12] = tga->hdr.width % 256;
+		tmp[13] = tga->hdr.width / 256;
+		tmp[14] = tga->hdr.height % 256;
+		tmp[15] = tga->hdr.height / 256;
+		tmp[16] = tga->hdr.depth;
+		tmp[17] = tga->hdr.desc;
+
+		if(TGAWrite(tga, tmp, TGA_HEADER_SIZE, 1) != 1) {
+			TGAError(tga, TGA_WRITE_FAIL, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+
+		free(tmp);
+		return TGA_HEADER_SIZE;
+	}
+	return 0;
 }
 
-/* write header and all sections specified in flags */
-void tga_write_tga(tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags)
+int
+TGAWriteImageId(TGA *tga, const tbyte *buf)
 {
-	tga_write_info(ptr, info, flags);
-
-	if(tga_is_flag(ptr, TGA_IMAGE_ID) && info->id_len != 0) {
-		tga_seek(ptr, 18, SEEK_SET);
-		tga_write_data(ptr, ptr->img_id, info->id_len);
+	tuint16 wrote;
+	
+	if(tga) {
+		if(!buf) {
+			TGAError(tga, TGA_BAD_PTR, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+		
+		if(TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET) != TGA_HEADER_SIZE) {
+			TGAError(tga, TGA_SEEK_FAIL, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+		
+		if((wrote = TGAWrite(tga, buf, tga->hdr.id_len, 1)) != 1)
+			TGAError(tga, TGA_WRITE_FAIL, "at %s line %d", __FILE__, __LINE__);
+		
+		return wrote;
 	}
-
-	if(tga_is_flag(ptr, TGA_COLOR_MAP) && info->map_t == 1) {
-		tga_write_data(ptr, ptr->color_map, info->map_len * info->map_entry_size);
-	}
-
-	if(tga_is_flag(ptr, TGA_IMAGE_DATA) && info->img_t != 0) {
-		tga_write_image_data(ptr, info, flags);
-	}
+	return 0;
 }
 
-/* write TGA header */
-void tga_write_info(tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags)
+
+int
+TGAWriteColorMap(TGA *tga, const tbyte *buf)
 {
-	tga_byte *tmp = (tga_byte*)tga_malloc(ptr, 18);
-	tga_seek(ptr, 0, SEEK_SET);
+	tuint32 n, off, wrote;
 
-	tmp[0] = info->id_len;
-	tmp[2] = info->img_t;
-	if(flags & TGA_COLOR_MAP) {
-		tmp[1] = 1;
-		tga_cpy_uint_16((tga_byte*)(&info->map_first_entry), tmp, 3);
-		tga_cpy_uint_16((tga_byte*)(&info->map_len), tmp, 5);
-		tmp[7] = info->map_entry_size;
-	} else {
-		tmp[1] = 0;
-		bzero(tmp + 4, 5);
+	if(tga) { 
+		if(!buf) {
+			TGAError(tga, TGA_BAD_PTR, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+		
+		n = TGA_CMAP_SIZE(tga);
+		off = TGA_CMAP_OFF(tga);
+		
+		if(TGASeek(tga, off, SEEK_SET) != off)  {
+			TGAError(tga, TGA_SEEK_FAIL, "at %s line %d", __FILE__, __LINE__);
+			return 0;
+		}
+		
+		if((wrote = TGAWrite(tga, buf, n, 1)) != 1)
+			TGAError(tga, TGA_WRITE_FAIL, "at %s line %d", __FILE__, __LINE__);
+	
+		return wrote;
 	}
-	tga_cpy_uint_16((tga_byte*)(&info->x), tmp, 8);
-	tga_cpy_uint_16((tga_byte*)(&info->y), tmp, 10);
-	tga_cpy_uint_16((tga_byte*)(&info->width), tmp, 12);
-	tga_cpy_uint_16((tga_byte*)(&info->height), tmp, 14);
-	tmp[16] = info->depth;
-	tmp[17] = info->desc;
-
-	tga_write_data(ptr, tmp, 18);
-	free(tmp);
+	return 0;
 }
-
-/* write image data */
-void tga_write_image_data(tga_ptr ptr, tga_info_ptr info, tga_uint_32 flags)
-{
-	tga_uint_32 len;
-	if(info->img_t > 0 && info->img_t < 4) {
-		if(info->img_t == 1 || info->img_t == 3)
-			len = info->width * info->height;
-		if(info->img_t == 2)
-			len = info->width * info->height * info->depth / 8;
-
-		tga_write_data(ptr, ptr->img_data, len);
-	} else {
-		tga_warning(ptr, "tga_write_image_data(tgawrite.c)", info->img_t);
-	}
-}
-

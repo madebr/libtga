@@ -1,93 +1,65 @@
 /*
- * tgadump.c - Simple example program that shows how to use the Libtga.
- * Copyright (C) 2001, Matthias Brückner
+ * tgadump.c - Dump out image information
+ * Copyright (C) 2001-2002  Matthias Brueckner
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
  *
- * CHANGES:
- * Oct 11 2001
- * 	Fixed SIGSEGV if input file was omitted
- * 	Changed 3rd arg of dump_seek() from tga_uint_8 to tga_off_t
- * Oct 10 2001
- * 	Now shows x and y orientation (from libtga-0.1.0)
- * Sep 10 2001
- *	Modified dump_read, dump_write and dump_seek to be compatible to libtga-0.0.9;
- * Sep 06 2001
- * 	Now parses command line options via getopt(3);
- * Sep 07 2001
- *	Added replacement read, write, seek, error and warning functions
- * 	for the library defaults;
+ * Current Version: 0.3
  *
- * Current version: 0.0.7 (alpha)
+ * Libtga functions used in this program are:
+ * 	TGAOpen()
+ *	TGAReadHeader()
+ * 	TGAGetXOrientation()
+ * 	TGAGetYOrientation()
+ * 	TGAReadImageId()
+ *	TGAClose()
  */
 
-#include <stdio.h>
-#include <malloc.h>
-#include <string.h>
-#include <error.h>
+#include <stdio.h>  /* printf(), fprintf() */
+#include <malloc.h> /* malloc() */
+#include <string.h> /* strlen(), strcmp(), strcpy() */
 
-extern int errno;
-
-#include <unistd.h>
+#include <unistd.h> /* getopt() */
 
 extern char *optarg;
 extern int optind, opterr, optopt;
 
-#include <tga.h>
+#include <tga.h>    /* standard libtga include header */
 
-#define EXIT_SUCCESS 1;
-#define EXIT_FAILURE 0;
-
-char help[] = "tgadump-0.0.7\n\
-Usage: tgadump -h\n\
-       tgadump -i file [ -f TGA_IMAGE_INFO ] [ -f TGA_IMAGE_ID ] \n\n";
-
-tga_uint_32 flags, verbose;
+#define EXIT_SUCCESS 0;
+#define EXIT_FAILURE 1;
 
 
-/* replacement for tga_default_read_data */
-void dump_read(tga_ptr ptr, void *buf, tga_uint_32 len)
+tuint32 flags, verbose, do_text;
+
+
+char *cmap[2] = {"not color mapped", "color mapped" };
+char *imgt[7] = { "no image data included" , "uncompressed color mapped",
+		  "uncompressed truecolor" , "uncompressed grayscale",
+		  "compressed color mapped", "compressed truecolor",
+		  "compressed grayscale" };
+
+void usage() 
 {
-        if(verbose >= 3) printf("[read] size=%i\n", len);
-        tga_default_read_data(ptr, buf, len);
-}
-
-/* replacement for tga_default_write_data */
-void dump_write(tga_ptr ptr, void *buf, tga_uint_32 len)
-{
-        if(verbose >= 3) printf("[write] size=%i\n", len);
-        tga_default_write_data(ptr, buf, len);
-}
-
-/* replacement for tga_default_seek */
-void dump_seek(tga_ptr ptr, tga_off_t off, tga_off_t whence)
-{
-        if(verbose >= 2) printf("[seek] offset=%ul, from=%s\n", off, (whence == SEEK_SET) ? "start" : "end");
-	fseek((FILE*)ptr->io_ptr, off, whence);
-}
-
-/* replacement for tga_default_error */
-void dump_error(tga_ptr ptr, char *msg, tga_err_t err)
-{
-        fprintf(stderr, "[error] %s: %s, errno=%i\n", msg, tga_get_str_error(err), errno);
-	if(feof((FILE*)ptr->io_ptr) != 0) fprintf(stderr, "[error] EOF\n");
-
-        tga_free_tga(ptr);
-        exit(0);
-}
-
-/* replacement for tga_default_warning */
-void dump_warning(tga_ptr ptr, char *msg, tga_err_t err)
-{
-        fprintf(stderr, "[warning] %s (%s)\n", msg, tga_get_str_error(err));
+	printf("tgadump-0.3\n\
+		USAGE: tgadump OPTIONS\n\
+		OPTIONS:\n\
+		-h\tprint this help message and exit\n\
+		-i\tinput file\n
+		-s\timage section to be read:\n\
+		\tTGA_IMAGE_ID, TGA_IMAGE_INFO\n\
+		-v\tbe verbose\n\
+		-t\tgive text information if possible\n");
+	
+	exit(0);
 }
 
 
-/* parse arguments of the -f option */
-void dump_set_flag(char *str)
+/* parse arguments of the -s option */
+void set_flag(char *str)
 {
         if(strcmp(str, "TGA_IMAGE_INFO") == 0) flags |= TGA_IMAGE_INFO;
         else if(strcmp(str, "TGA_IMAGE_ID") == 0) flags |= TGA_IMAGE_ID;
@@ -97,21 +69,27 @@ void dump_set_flag(char *str)
 
 int main(int argc, char *argv[])
 {
-	tga_info_ptr info;
-	tga_ptr ptr;
-	FILE *in;
-        char c, *bottom = "bottom", *top = "top", *left = "left", *right = "right";
-	char *input = 0;
+        TGA *tga;
 
-        while((c=getopt(argc, argv, "hvi:f:")) != -1) {
+	FILE *in;
+        char c, *input = 0;
+	unsigned int *img_id;
+
+	/* parse command line arguments */
+        while((c = getopt(argc, argv, "hvti:s:")) != -1) {
                 switch (c) {
-                        case 'h': printf("%s\n", help); exit(0);
-                        case 'v': ++verbose; break;
+                        case 'h': usage();
+                        case 'v': verbose = 1; break;
 			case 'i': {
 				input = (char*)malloc(strlen(optarg));
+				if(!input) {
+					fprintf(stderr, "[error] out of memory at %s line %d\n", __FILE__, __LINE__);
+					exit(1);
+				}
 				strcpy(input, optarg);
 				break;
-                        } case 'f': dump_set_flag(optarg); break;
+                        } case 's': set_flag(optarg); break;
+			  case 't': do_text = 1; break;
                         default: fprintf(stderr, "[error] invalid option\n");
                 }
         }
@@ -121,51 +99,58 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
         }
 
-	info = (tga_info_ptr)malloc(sizeof(struct tga_info));
-	ptr = (tga_ptr)malloc(sizeof(struct tga));
-
-	if(!ptr || !info) {
-		fprintf(stderr, "[error] memory allocation error\n");
-		return EXIT_FAILURE;
-	}
-
-        if(verbose >= 1) printf("[open] name=%s, mode=%s\n", input, "r");
+	/* open read-only */
+        if(verbose) printf("[open] name=%s, mode=%s\n", input, "rl");
+	tga = TGAOpen(input, "r");
 	
-	if((in = fopen(input, "r")) == NULL) dump_error(ptr, "main(tgadump.c)", TGA_BAD_FD);
-
-        if(verbose >= 3) {
-		printf("[init] io=%x, read=%x, write=%x, seek=%x, error=%x, warning=%x\n",
-                in, dump_read, dump_write, dump_seek, dump_error, dump_warning);
+	if(!tga) exit(1);
+	
+	/* now read the image header */
+	if(verbose) printf("[read] section=header\n");
+	TGAReadHeader(tga);
+	if(tga->last != 0) { 
+		TGAClose(tga);
+		exit(1);
 	}
 
-	tga_init_ptr(ptr, in, dump_read, dump_write, dump_seek, dump_error, dump_warning);
-
-	tga_read_tga(ptr, info, flags);
-
+	/* check if image header was intented to be read */
         if(flags & TGA_IMAGE_INFO) {
-                if(ptr->flags & TGA_IMAGE_INFO) {
-	                printf("[info] width=%lu\n", info->width);
-	                printf("[info] height=%lu\n", info->height);
-	                printf("[info] map type=%i\n", info->map_t);
-	                printf("[info] image type=%i\n", info->img_t);
-	                printf("[info] depth=%i\n", info->depth);
-	                printf("[info] x=%i\n", info->x);
-	                printf("[info] y=%i\n", info->y);
+
+		/* check if image header was actually read */
+                if(tga->flags & TGA_IMAGE_INFO) {
+	                printf("[info] width=%lu\n", tga->hdr.width);
+	                printf("[info] height=%lu\n", tga->hdr.height);
+
+	                printf("[info] color map type=%i\n", tga->hdr.map_t);
+			if(do_text) printf("-> [text] %s\n", cmap[tga->hdr.map_t]);
+
+	                printf("[info] image type=%i\n", tga->hdr.img_t);
+			if(do_text) printf("-> [text] %s\n", (tga->hdr.img_t > 8) ?
+				imgt[tga->hdr.img_t - 8] : imgt[tga->hdr.img_t]);
+
+	                printf("[info] depth=%i\n", tga->hdr.depth);
+	                printf("[info] x=%i\n", tga->hdr.x);
+	                printf("[info] y=%i\n", tga->hdr.y);
 			printf("[info] orientation=%s-%s\n",
-			(tga_get_y_orientation(info) == TGA_BOTTOM) ? "bottom" : "top",
-		 	(tga_get_x_orientation(info) == TGA_LEFT) ? "left" : "right");
-                 } else dump_error(ptr, "no image info available", TGA_ERROR);
+			(TGAGetYOrientation(tga) == TGA_BOTTOM) ?
+				"bottom" : "top",
+		 	(TGAGetXOrientation(tga) == TGA_LEFT) ?
+				"left" : "right");
+                 } else fprintf(stderr, "[error] no image header found\n");
         }
+
+	/* check if image id should be read */
         if(flags & TGA_IMAGE_ID) {
-                if(ptr->flags & TGA_IMAGE_ID) printf("image id: %s\n", ptr->img_id);
-                else dump_warning(ptr, "no image id data available\n", TGA_ERROR);
+		if(TGAReadImageId(tga, &img_id) == 1) {
+	                printf("-> image id: %s\n", img_id);
+		}
         }
 
-	fclose(in);
-	free(info);
-	tga_free_tga(ptr);
 
-        printf("[exit] main\n");
+	/* clean-up */
+        TGAClose(tga);
+
+        if(verbose) printf("[exit] main\n");
 
 	return EXIT_SUCCESS;
 }

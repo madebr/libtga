@@ -1,8 +1,8 @@
 /*
- * tga.c - Some general purpose functions
+ * tga.c
  *
- * Copyright (C) 2001, Matthias Brückner
- * This file is part of the TGA image library (libtga).
+ * Copyright (C) 2001-2002, Matthias Brueckner
+ * This file is part of the TGA library (libtga).
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -10,77 +10,115 @@
  * version 2 of the License, or (at your option) any later version.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include "tga.h"
-#include "tgaconfig.h"
 
 
-/* set flag */
-void tga_set_flag(tga_ptr ptr, tga_uint_8 flag)
+int
+TGAIsEncoded(TGA *tga)
 {
-	ptr->flags |= flag;
+ 	return (tga) ? tga->hdr.img_t > 8 && tga->hdr.img_t < 12 : 1;
 }
 
 
-/* check flag */
-bool tga_is_flag(tga_ptr ptr, tga_uint_8 flag)
+int
+TGAGetXOrientation(TGA *tga)
 {
-  return ptr->flags & flag;
+	return (tga) ? ((tga->hdr.desc & (1 << 4)) ? TGA_RIGHT : TGA_LEFT) : 0;
 }
 
 
-bool tga_is_compressed(tga_info_ptr info)
+int
+TGAGetYOrientation(TGA *tga)
 {
-  return info->img_t > 8 || info->img_t < 12;
+	return (tga) ? ((tga->hdr.desc & (1 << 5)) ? TGA_TOP : TGA_BOTTOM) : 0;
 }
 
 
-tga_uint_8 tga_get_x_orientation(tga_info_ptr info)
+off_t
+TGASeek(TGA *tga, off_t off, int whence)
 {
-	return (info->desc & (1 << 4)) ? TGA_RIGHT : TGA_LEFT;
+	fseek(tga->fd, off, whence);
+	tga->off = ftell(tga->fd);
+	return tga->off;
 }
 
 
-tga_uint_8 tga_get_y_orientation(tga_info_ptr info)
+TGA*
+TGAOpen(char *file, char *mode)
 {
-	return (info->desc & (1 << 5)) ? TGA_TOP : TGA_BOTTOM;
+ 	TGA *tga;
+	FILE *f;
+
+	tga = (TGA*)malloc(sizeof(TGA));
+	if(!tga) {
+		TGAError(NULL, TGA_OOM, "at %s line %d", __FILE__, __LINE__);
+		return NULL;
+	}
+		
+	tga->name = (char*)malloc(strlen(file));
+	if(!tga->name) {
+		TGAError(tga, TGA_OOM, "at %s line %d", __FILE__, __LINE__);
+		free(tga);
+		return NULL;
+	}
+	
+	strcpy(tga->name, file);
+	
+	tga->off = 0;
+	tga->row = 0;
+
+	f = fopen(file, mode);
+	if(!f) {
+		TGAError(tga, TGA_OPEN_FAIL, "at %s line %d", __FILE__, __LINE__);
+		free(tga);
+		return NULL;
+	}
+	tga->fd = f;
+
+	return tga;
 }
 
 
-/* init pointer to tga struct */
-void tga_init_ptr(tga_ptr ptr,
-		void *io_ptr,
-		tga_io_func read_fn,
-		tga_io_func write_fn,
-		tga_seek_func seek_fn,
-		tga_err_func err_fn,
-		tga_err_func warn_fn)
+void TGAClose(TGA *tga)
 {
-	ptr->io_ptr = io_ptr;
-	ptr->read_fn = read_fn;
-	ptr->write_fn = write_fn;
-        ptr->seek_fn = seek_fn;
-	ptr->err_fn = err_fn;
-	ptr->warn_fn = warn_fn;
+	if(tga) {
+		fclose(tga->fd);
+		free(tga->name);
+		free(tga);
+	}
 }
 
 
-/* swap byte 0 with byte 1, byte 2 with byte 3, ... */
-void tga_swap_bytes(tga_byte *buf)
+void TGAError(TGA *tga, int code, char *fmt, ...)
 {
-        tga_byte tmp;
-        tga_uint_32 i = 0, len = strlen(buf);
-        for(i = 0; i < len; ++i) {
-                tmp = buf[i];
-                buf[i] = buf[i + 1];
-                buf[i + 1] = tmp;
-        }
+	va_list arg;
+	va_start(arg, fmt);
+
+	if(tga && tga->error) tga->error(code, fmt, arg);
+	else { 
+		vfprintf(stderr, fmt, arg);
+		fprintf(stderr, ": TODO\n");
+	}
+
+	va_end(arg);
+	tga->last = code;
 }
 
 
-/* extract string from src[start] to src[end] */
-tga_byte* tga_substr(tga_ptr ptr, __const tga_byte *src, tga_off_t start, tga_off_t end)
+void TGAMessage(TGA *tga, int code, char *fmt, ...)
 {
-	tga_byte i, *ret = (tga_byte*)tga_malloc(ptr, end - start);
-	for(start,i = 0; start < end; ++start, ++i) ret[i] = src[start];
-	return ret;
+	va_list arg;
+	va_start(arg, fmt);
+
+	if(tga && tga->message) tga->message(code, fmt, arg);
+	else {
+		vfprintf(stderr, fmt, arg);
+		fprintf(stderr, ": TODO\n");
+	}
+
+	va_end(arg);
+	tga->last = code;
 }

@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p4 from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -62,20 +62,33 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
-noinst_PROGRAMS = tgadump
+noinst_PROGRAMS = tgadump 		  tgacpy  		  tgaunmap
+
+
 tgadump_SOURCES = tgadump.c
 tgadump_LDFLAGS = -ltga
+
+tgacpy_SOURCES = tgacpy.c
+tgacpy_LDFLAGS = -ltga
+
+tgaunmap_SOURCES = tgaunmap.c
+tgaunmap_LDFLAGS = -ltga
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../src/tgaconfig.h
 CONFIG_CLEAN_FILES = 
+noinst_PROGRAMS =  tgadump$(EXEEXT) tgacpy$(EXEEXT) tgaunmap$(EXEEXT)
 PROGRAMS =  $(noinst_PROGRAMS)
 
 
@@ -83,9 +96,15 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I../src
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-tgadump_OBJECTS =  tgadump.o
+tgadump_OBJECTS =  tgadump.$(OBJEXT)
 tgadump_LDADD = $(LDADD)
 tgadump_DEPENDENCIES = 
+tgacpy_OBJECTS =  tgacpy.$(OBJEXT)
+tgacpy_LDADD = $(LDADD)
+tgacpy_DEPENDENCIES = 
+tgaunmap_OBJECTS =  tgaunmap.$(OBJEXT)
+tgaunmap_LDADD = $(LDADD)
+tgaunmap_DEPENDENCIES = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -98,12 +117,12 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(tgadump_SOURCES)
-OBJECTS = $(tgadump_OBJECTS)
+SOURCES = $(tgadump_SOURCES) $(tgacpy_SOURCES) $(tgaunmap_SOURCES)
+OBJECTS = $(tgadump_OBJECTS) $(tgacpy_OBJECTS) $(tgaunmap_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .lo .o .s
+.SUFFIXES: .S .c .lo .o .obj .s
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps examples/Makefile
 
@@ -124,6 +143,11 @@ maintainer-clean-noinstPROGRAMS:
 .c.o:
 	$(COMPILE) -c $<
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -132,6 +156,7 @@ maintainer-clean-noinstPROGRAMS:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -159,9 +184,17 @@ distclean-libtool:
 
 maintainer-clean-libtool:
 
-tgadump: $(tgadump_OBJECTS) $(tgadump_DEPENDENCIES)
-	@rm -f tgadump
+tgadump$(EXEEXT): $(tgadump_OBJECTS) $(tgadump_DEPENDENCIES)
+	@rm -f tgadump$(EXEEXT)
 	$(LINK) $(tgadump_LDFLAGS) $(tgadump_OBJECTS) $(tgadump_LDADD) $(LIBS)
+
+tgacpy$(EXEEXT): $(tgacpy_OBJECTS) $(tgacpy_DEPENDENCIES)
+	@rm -f tgacpy$(EXEEXT)
+	$(LINK) $(tgacpy_LDFLAGS) $(tgacpy_OBJECTS) $(tgacpy_LDADD) $(LIBS)
+
+tgaunmap$(EXEEXT): $(tgaunmap_OBJECTS) $(tgaunmap_DEPENDENCIES)
+	@rm -f tgaunmap$(EXEEXT)
+	$(LINK) $(tgaunmap_LDFLAGS) $(tgaunmap_OBJECTS) $(tgaunmap_LDADD) $(LIBS)
 
 tags: TAGS
 
@@ -200,14 +233,13 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$/$$file $(distdir)/$$file; \
+	    cp -pr $$d/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-tgadump.o: tgadump.c ../src/tga.h ../src/tgaconfig.h
 
 info-am:
 info: info-am

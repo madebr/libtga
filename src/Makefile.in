@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p4 from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -62,22 +62,26 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
 lib_LTLIBRARIES = libtga.la
 
-libtga_la_SOURCES = tga.c 			    tgaerror.c 			    tgaread.c 			    tgawrite.c 			    tgamem.c
+libtga_la_SOURCES = tga.c 			    tgaread.c 			    tgawrite.c
 
 
 include_HEADERS = tga.h tgaconfig.h
 
-libtga_la_LDFLAGS = -version-info 0:0:0
+libtga_la_LDFLAGS = -version-info 1:0:0
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = tgaconfig.h
 CONFIG_CLEAN_FILES = 
@@ -89,7 +93,7 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 libtga_la_LIBADD = 
-libtga_la_OBJECTS =  tga.lo tgaerror.lo tgaread.lo tgawrite.lo tgamem.lo
+libtga_la_OBJECTS =  tga.lo tgaread.lo tgawrite.lo
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -97,8 +101,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 HEADERS =  $(include_HEADERS)
 
-DIST_COMMON =  ./stamp-h.in AUTHORS COPYING ChangeLog Makefile.am \
-Makefile.in NEWS TODO tgaconfig.h.in
+DIST_COMMON =  ./stamp-h.in COPYING ChangeLog Makefile.am Makefile.in \
+tgaconfig.h.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -110,7 +114,7 @@ OBJECTS = $(libtga_la_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .lo .o .s
+.SUFFIXES: .S .c .lo .o .obj .s
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps src/Makefile
 
@@ -175,6 +179,11 @@ uninstall-libLTLIBRARIES:
 .c.o:
 	$(COMPILE) -c $<
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -183,6 +192,7 @@ uninstall-libLTLIBRARIES:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -265,18 +275,13 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$/$$file $(distdir)/$$file; \
+	    cp -pr $$d/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-tga.lo tga.o : tga.c tga.h tgaconfig.h
-tgaerror.lo tgaerror.o : tgaerror.c tga.h tgaconfig.h
-tgamem.lo tgamem.o : tgamem.c tga.h tgaconfig.h
-tgaread.lo tgaread.o : tgaread.c tga.h tgaconfig.h
-tgawrite.lo tgawrite.o : tgawrite.c tga.h tgaconfig.h
 
 info-am:
 info: info-am
