@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT
-AM_INIT_AUTOMAKE(libtga, 1.0.0)
-AC_REVISION($Revision: 1.13 $)dnl
+AM_INIT_AUTOMAKE(libtga, 1.0.1)
+AC_REVISION($Revision: 1.14 $)dnl
 
 AM_CONFIG_HEADER(src/tgaconfig.h)
 AC_PROG_MAKE_SET

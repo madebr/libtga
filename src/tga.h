@@ -34,16 +34,25 @@
 #else
 # define __BEGIN_DECLS
 # define __END_DECLS
-#endif /* __cplusplus */
+#endif
 
-/* Some macros to cope with non-ANSI C or C++ compilers. */
+/* Some macros to cope with non-ANSI C or C++ compilers.
+ * (NOTE: This shouldn't be neccessary anymore nowadays)
+ */
 #undef __P
 #if defined STDC_HEADERS || defined __cplusplus
 # define __P(args) args
 #else
 # define __P(args) ()
-#endif /* defined STDC_HEADERS || defined __cplusplus */
+#endif
 
+/* __FILE__ and __LINE__ are gcc specific */
+#ifndef __FILE__
+# define __FILE__ "unknown"
+#endif
+#ifndef __LINE__
+# define __LINE__ 0
+#endif
 
 /* sections */
 #define TGA_IMAGE_ID	0x01
@@ -66,8 +75,8 @@
 /* version info */
 #define LIBTGA_VER_MAJOR  	1
 #define LIBTGA_VER_MINOR  	0
-#define LIBTGA_VER_PATCH	0
-#define LIBTGA_VER_STRING	"1.0.0"
+#define LIBTGA_VER_PATCH	1
+#define LIBTGA_VER_STRING	"1.0.1"
 
 /* error codes */
 enum {  TGA_OK = 0, 		/* success */
@@ -102,7 +111,7 @@ tga_error_strings[] = {
 #else
         typedef unsigned long tuint32;
         typedef unsigned int tuint16;
-#endif /* SIZEOF_UNSIGNED_INT */
+#endif
 
 typedef unsigned char tuint8;
 

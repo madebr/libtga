@@ -39,8 +39,6 @@ TGAWrite(TGA 	     *tga,
 int TGAWriteImage(TGA 	  *tga, 
 		  TGAData *data)
 {
-	int ret = TGA_OK;
-
 	if (!tga) return TGA_ERROR;
 
 	if ((data->flags & TGA_IMAGE_ID) && tga->hdr.id_len > 0) {

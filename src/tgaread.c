@@ -180,8 +180,7 @@ TGAReadColorMap (TGA 	  *tga,
 		 tbyte   **buf,
 		 tuint32   flags)
 {
-	tlong i, n, off, read;
-	tbyte tmp, r, g, b;
+	tlong i, n, off, read, tmp;
  
 	if (!tga) return 0;
 
@@ -209,13 +208,21 @@ TGAReadColorMap (TGA 	  *tga,
 	if (TGA_CAN_SWAP(tga->hdr.map_entry) && (flags & TGA_RGB)) {
 		__TGAbgr2rgb(*buf, TGA_CMAP_SIZE(tga), tga->hdr.map_entry / 8);
 	}
-
+	
 	if (tga->hdr.map_entry == 15 || tga->hdr.map_entry == 16) {
-		for(i = 0; i < read; i += 2) {
-			tmp = *buf[i];
-			*buf[i] = ((((tmp >> 10) & 0x1F) << r) |
-				(((tmp >> 5) & 0x1F) << g) |
-				((tmp & 0x1F) << b));
+		n = read + read / 2;
+		*buf = (tbyte*)realloc(*buf, n);
+		if (!(*buf)) {
+			TGA_ERROR(tga, TGA_OOM);
+			return 0;
+		}
+
+		for(i = read - 1; i >= 0; i -= 2) {
+			tmp = *buf[i - 1] + *buf[i] * 255;
+			*buf[n - 2] = (tmp >> 10) & 0x1F;
+			*buf[n - 1] = (tmp >> 5) & 0x1F;
+			*buf[n] = (tmp >> 5) & 0x1F;
+			n -= 3;
 		}
 	}
 	
@@ -270,8 +277,7 @@ TGAReadScanlines(TGA 	*tga,
 		 tuint32 flags)
 {	
 	tlong i, off;
-	size_t sln_size, read;
-	tbyte tmp, r, g, b;
+	size_t sln_size, read, tmp;
 
 	if (!tga || !buf) return 0;
 
@@ -302,13 +308,21 @@ TGAReadScanlines(TGA 	*tga,
 		__TGAbgr2rgb(buf + (sln_size * sln), sln_size * n, 
 			   tga->hdr.depth / 8);
 	}
-
+	
 	if (tga->hdr.depth == 15 || tga->hdr.depth == 16) {
-		for(i = 0; i < read; i += 2) {
-			tmp = buf[i];
-			buf[i] = ((((tmp >> 10) & 0x1F) << r) |
-				(((tmp >> 5) & 0x1F) << g) |
-				((tmp & 0x1F) << b));
+		n = read + read / 2;	
+		buf = (tbyte*)realloc(buf, n);
+		if (!buf) {
+			TGA_ERROR(tga, TGA_OOM);
+			return 0;
+		}
+	
+		for(i = read - 1; i >= 0; i -= 2) {
+			tmp = buf[i - 1] + buf[i] * 255;
+			buf[n - 2] = (tmp >> 10) & 0x1F;
+			buf[n - 1] = (tmp >> 5) & 0x1F;
+			buf[n] = (tmp >> 5) & 0x1F;
+			n -= 3;
 		}
 	}
 	

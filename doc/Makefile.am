@@ -1,6 +1,8 @@
 # Most of this Makefile.am was taken from Documentation/DocBook/Makefile
 # from the Linux kernel tree
 
+EXTRA_DIST=api.sgml
+
 pdf: api.sgml
 	@(which db2pdf > /dev/null 2>&1) || \
 	 (echo "*** You need to install DocBook stylesheets ***"; \
