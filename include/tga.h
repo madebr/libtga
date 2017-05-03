@@ -87,7 +87,7 @@ enum {
 #define TGA_ERRORS 8  /* total number of error codes */
 
 /* text strings corresponding to the error codes */
-extern char *
+extern const char *
 tga_error_strings[];
 
 #if SIZEOF_UNSIGNED_INT == 4
@@ -151,7 +151,7 @@ struct _TGA {
 __BEGIN_DECLS
 
 
-TGA* TGAOpen __P((char *name, char *mode));
+TGA* TGAOpen __P((const char *name, const char *mode));
 
 TGA* TGAOpenFd __P((FILE *fd));
 
@@ -180,7 +180,7 @@ size_t TGAWriteScanlines __P((TGA *tga, tbyte *buf, size_t sln, size_t n,
 int TGAWriteImage __P((TGA *tga, TGAData *data));
 
 
-char* TGAStrError __P((tuint8 code));
+const char* TGAStrError __P((tuint8 code));
 
 tlong __TGASeek __P((TGA *tga, tlong off, int whence));
 
