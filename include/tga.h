@@ -167,6 +167,7 @@ size_t TGAReadScanlines __P((TGA *tga, tbyte *buf, size_t sln, size_t n,
 
 int TGAReadImage __P((TGA *tga, TGAData *data));
 
+void TGAFreeTGAData(TGAData *data);
 
 int TGAWriteHeader __P((TGA *tga));
 

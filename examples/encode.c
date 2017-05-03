@@ -75,6 +75,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+        TGAFreeTGAData(data);
+        
 	printf("[close]\n[close]\n");
         TGAClose(in);
 	TGAClose(out);

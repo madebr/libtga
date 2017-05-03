@@ -73,6 +73,8 @@ int main(int argc, char *argv[])
 			       "left" : "right");
 	}
 
+        TGAFreeTGAData(data);
+
 	printf("[close]\n");
         TGAClose(tga);
         printf("[exit] main\n");

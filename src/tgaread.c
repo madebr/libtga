@@ -83,6 +83,16 @@ TGAReadImage(TGA     *tga,
 	return TGA_OK;
 }
 
+void TGAFreeTGAData(TGAData *data)
+{
+    if (data->cmap)
+        free(data->cmap);
+    if (data->img_data)
+        free(data->img_data);
+    if (data->img_id)
+        free(data->img_id);
+}
+
 int
 TGAReadHeader (TGA *tga)
 {
