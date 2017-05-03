@@ -22,7 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tga.h"
+#include <tga.h>
+#include "tga_private.h"
 
 size_t
 TGAWrite(TGA 	     *tga, 

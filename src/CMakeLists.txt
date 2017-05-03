@@ -1,4 +1,5 @@
 set(LIBTGA_SOURCES
+    tga_private.h
     tga.c
     tgaread.c
     tgawrite.c
