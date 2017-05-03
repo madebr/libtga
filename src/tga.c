@@ -59,6 +59,7 @@ TGAOpen(const char *file,
 	}
 	tga->fd = fd;
 	tga->last = TGA_OK;
+        tga->error = (TGAErrorProc) 0;
 	return tga;
 }
 
