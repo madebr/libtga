@@ -46,6 +46,9 @@ TGAReadImage(TGA     *tga,
 		TGA_ERROR(tga, tga->last);
 		return 0;
 	}
+        data->cmap = (tbyte *) 0;
+        data->img_data = (tbyte *) 0;
+        data->img_id = (tbyte *) 0;
 
 	if ((data->flags & TGA_IMAGE_ID) && tga->hdr.id_len != 0) {
 		if (TGAReadImageId(tga, &data->img_id) != TGA_OK) {
