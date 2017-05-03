@@ -23,6 +23,18 @@
 #include <stdlib.h>
 #include "tga.h"
 
+char *tga_error_strings[] =
+{
+	"Success",
+	"Error",
+	"Out of memory",
+	"Failed to open file",
+	"Seek failed",
+	"Read failed",
+	"Write failed",
+	"Unknown sub-format",
+};
+
 
 TGA*
 TGAOpen(char *file, 

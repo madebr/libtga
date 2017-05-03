@@ -22,7 +22,6 @@
 #ifndef __TGA_H
 #define __TGA_H 1
 
-#include <tgaconfig.h>  /* include our config header before anything else */
 #include <stdio.h>
 
 /* Tell C++ that we have C types and declarations. */
@@ -39,12 +38,7 @@
 /* Some macros to cope with non-ANSI C or C++ compilers.
  * (NOTE: This shouldn't be neccessary anymore nowadays)
  */
-#undef __P
-#if defined STDC_HEADERS || defined __cplusplus
-# define __P(args) args
-#else
-# define __P(args) ()
-#endif
+#define __P(args) args
 
 /* __FILE__ and __LINE__ are gcc specific */
 #ifndef __FILE__
@@ -79,7 +73,8 @@
 #define LIBTGA_VER_STRING	"1.0.1"
 
 /* error codes */
-enum {  TGA_OK = 0, 		/* success */
+enum {
+	TGA_OK = 0, 		/* success */
 	TGA_ERROR,
 	TGA_OOM,		/* out of memory */
 	TGA_OPEN_FAIL,
@@ -92,18 +87,8 @@ enum {  TGA_OK = 0, 		/* success */
 #define TGA_ERRORS 8  /* total number of error codes */
 
 /* text strings corresponding to the error codes */
-static char*
-tga_error_strings[] = {
-	"Success",
-	"Error",
-	"Out of memory",
-	"Failed to open file",
-	"Seek failed",
-	"Read failed",
-	"Write failed",
-	"Unknown sub-format"
-};
-
+extern char *
+tga_error_strings[];
 
 #if SIZEOF_UNSIGNED_INT == 4
         typedef unsigned int tuint32;
@@ -129,7 +114,7 @@ typedef void (*TGAErrorProc)(TGA*, int);
 
 /* TGA image header */
 struct _TGAHeader {
-    	tbyte	id_len;		/* image id length */
+	tbyte	id_len;		/* image id length */
 	tbyte	map_t;		/* color map type */
 	tbyte	img_t;		/* image type */
 	tshort	map_first;	/* index of first map entry */

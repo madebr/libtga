@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
 {
        	TGA *in, *out;
 	TGAData *data;
-	int encode;
 
 	if(argc < 3) {
 		printf("Not enough arguments supplied!\n");
