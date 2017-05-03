@@ -21,7 +21,8 @@
  
 #include <stdio.h>
 #include <stdlib.h>
-#include "tga.h"
+#include <tga.h>
+#include "tga_private.h"
 
 const char *tga_error_strings[] =
 {
@@ -104,8 +105,22 @@ TGAClose(TGA *tga)
 }
 
 
+void
+TGAClearError(TGA *tga)
+{
+	tga->last = TGA_OK;
+}
+
+
 const char*
-TGAStrError(tuint8 code)
+TGAStrError(TGA *tga)
+{
+	return TGAStrErrorCode(tga->last);
+}
+
+
+const char*
+TGAStrErrorCode(tuint8 code)
 {
 	if (code >= TGA_ERRORS) code = TGA_ERROR;
 	return tga_error_strings[code];

@@ -1,6 +1,8 @@
 #ifndef TGA_PRIVATE_H
 #define TGA_PRIVATE_H
 
+#include <tga.h>
+
 tlong __TGASeek(TGA *tga, tlong off, int whence);
 
 void __TGAbgr2rgb(tbyte *data, size_t size, size_t bytes);
@@ -15,5 +17,12 @@ void __TGAbgr2rgb(tbyte *data, size_t size, size_t bytes);
 
 #define TGA_IS_MAPPED(tga)      ((tga)->hdr.map_t == 1)
 #define TGA_IS_ENCODED(tga)     ((tga)->hdr.img_t > 8 && (tga)->hdr.img_t < 12)
+
+const char *__TGAStrError(tuint8 code);
+
+#define TGA_ERROR(tga, code) \
+if((tga) && (tga)->error) (tga)->error(tga, code);\
+fprintf(stderr, "Libtga:%s:%d: %s\n", __FILE__, __LINE__, TGAStrErrorCode(code));\
+if(tga) (tga)->last = code\
 
 #endif /* TGA_PRIVATE_H */

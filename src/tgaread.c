@@ -180,7 +180,8 @@ TGAReadImageId(TGA    *tga,
 	}
 
 	if (!TGARead(tga, *buf, tga->hdr.id_len, 1)) {
-		free(buf);
+		free(*buf);
+                *buf = 0;
 		TGA_ERROR(tga, TGA_READ_FAIL);
 		return 0;
 	}

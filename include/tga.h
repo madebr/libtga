@@ -145,16 +145,12 @@ size_t TGAWriteScanlines(TGA *tga, tbyte *buf, size_t sln, size_t n,
 
 int TGAWriteImage(TGA *tga, TGAData *data);
 
-
-const char* TGAStrError(tuint8 code);
-
-
 void TGAClose(TGA *tga);
 
-#define TGA_ERROR(tga, code) \
-if((tga) && (tga)->error) (tga)->error(tga, code);\
-fprintf(stderr, "Libtga:%s:%d: %s\n", __FILE__, __LINE__, TGAStrError(code));\
-if(tga) (tga)->last = code\
+void TGAClearError(TGA *tga);
+
+const char *TGAStrErrorCode(tuint8 code);
+const char* TGAStrError(TGA *tga);
 
 #ifdef __cplusplus
 }

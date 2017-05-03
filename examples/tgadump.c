@@ -13,6 +13,7 @@
 #include <stdio.h>  
 #include <stdlib.h>
 #include <tga.h>
+#include "utils.h"
 
 
 char *cmap[2] = {"not color mapped", "color mapped" };
@@ -34,21 +35,21 @@ int main(int argc, char *argv[])
 
 	data = (TGAData*)malloc(sizeof(TGAData));
 	if(!data) {
-		TGA_ERROR((TGA*)NULL, TGA_OOM);
+		TGA_EXAMPLE_ERROR(TGAStrErrorCode(TGA_OOM));
 		return 0;
 	}
 	
         printf("[open] name=%s, mode=%s\n", argv[1], "r");
 	tga = TGAOpen(argv[1], "r");
 	if (!tga || tga->last != TGA_OK) {
-		TGA_ERROR(tga, TGA_OPEN_FAIL);
+		TGA_EXAMPLE_ERROR(TGAStrError(tga));
 		return 0;
 	}
 	
 	printf("[read] image\n");
 	data->flags = TGA_IMAGE_INFO;
 	if (TGAReadImage(tga, data) != TGA_OK) {
-		TGA_ERROR(tga, TGA_READ_FAIL);
+		TGA_EXAMPLE_ERROR(TGAStrError(tga));
 		return 0;
 	}
 

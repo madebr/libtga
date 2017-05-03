@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tga.h>
-
+#include "utils.h"
 
 void make_header(TGA *src, TGA *dest)
 {
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 	
 	data = (TGAData*)malloc(sizeof(TGAData));
 	if(!data) {
-		TGA_ERROR((TGA*)NULL, TGA_OOM);
+		TGA_EXAMPLE_ERROR(TGAStrErrorCode(TGA_OOM));
 		return 0;
 	}
 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 	data->flags = TGA_IMAGE_ID | TGA_IMAGE_DATA | TGA_RGB;
 	TGAReadImage(in, data);
 	if (in->last != TGA_OK) {
-		TGA_ERROR(in, in->last);
+		TGA_EXAMPLE_ERROR(TGAStrError(in));
 		return 0;
 	}
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
 	TGAWriteImage(out, data);
 	if (out->last != TGA_OK) {
-		TGA_ERROR(out, out->last);
+		TGA_EXAMPLE_ERROR(TGAStrError(out));
 		return 0;
 	}
 

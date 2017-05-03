@@ -1,3 +1,8 @@
+add_library(example_utils
+    utils.c
+    utils.h
+)
+
 set(EXAMPLES
     decode
     encode
@@ -10,6 +15,7 @@ foreach(EXAMPLE ${EXAMPLES})
     )
 
     target_link_libraries(${EXAMPLE}
+        example_utils
         libtga
     )
 
