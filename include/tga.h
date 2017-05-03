@@ -47,12 +47,6 @@ extern "C" {
 #define	TGA_LEFT	0x0
 #define	TGA_RIGHT	0x1
 
-/* version info */
-#define LIBTGA_VER_MAJOR  	1
-#define LIBTGA_VER_MINOR  	0
-#define LIBTGA_VER_PATCH	1
-#define LIBTGA_VER_STRING	"1.0.1"
-
 /* error codes */
 enum {
 	TGA_OK = 0, 		/* success */
