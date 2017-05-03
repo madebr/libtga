@@ -28,18 +28,6 @@
 extern "C" {
 #endif
 
-/* Some macros to cope with non-ANSI C or C++ compilers.
- * (NOTE: This shouldn't be neccessary anymore nowadays)
- */
-
-/* __FILE__ and __LINE__ are gcc specific */
-#ifndef __FILE__
-# define __FILE__ "unknown"
-#endif
-#ifndef __LINE__
-# define __LINE__ 0
-#endif
-
 /* sections */
 #define TGA_IMAGE_ID	0x01
 #define TGA_IMAGE_INFO	0x02
