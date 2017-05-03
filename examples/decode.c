@@ -41,15 +41,15 @@ int main(int argc, char *argv[])
        	TGA *in, *out;
 	TGAData *data;
 
-	if(argc < 3) {
-		printf("Not enough arguments supplied!\n");
-		return 0;
+	if(argc != 3) {
+		fprintf(stderr, "Usage: %s INPUTFILE OUTPUTFILE\n", argv[0]);
+		return 1;
 	}
 	
 	data = (TGAData*)malloc(sizeof(TGAData));
 	if(!data) {
 		TGA_EXAMPLE_ERROR(TGAStrErrorCode(TGA_OOM));
-		return 0;
+		return 1;
 	}
 
         in = TGAOpen(argv[1], "r");
@@ -61,17 +61,17 @@ int main(int argc, char *argv[])
 
 	data->flags = TGA_IMAGE_ID | TGA_IMAGE_DATA | TGA_RGB;
 	TGAReadImage(in, data);
-	if (in->last != TGA_OK) {
+	if (!TGA_SUCCEEDED(in)) {
 		TGA_EXAMPLE_ERROR(TGAStrError(in));
-		return 0;
+		return 1;
 	}
 
 	make_header(in, out);
 
 	TGAWriteImage(out, data);
-	if (out->last != TGA_OK) {
+	if (!TGA_SUCCEEDED(out)) {
 		TGA_EXAMPLE_ERROR(TGAStrError(out));
-		return 0;
+		return 1;
 	}
 
         TGAFreeTGAData(data);
@@ -83,5 +83,5 @@ int main(int argc, char *argv[])
 
         printf("[exit] main\n");
 
-	return EXIT_SUCCESS;
+	return 0;
 }

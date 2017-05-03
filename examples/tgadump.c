@@ -28,32 +28,33 @@ int main(int argc, char *argv[])
         TGA *tga;
 	TGAData *data;
         
-	if(argc < 2) {
-		printf("No input file!\n");
-		return 0;
+	if(argc != 2) {
+		fprintf(stderr, "Usage: %s INPUTFILE\n", argv[0]);
+		return 1;
 	}
 
 	data = (TGAData*)malloc(sizeof(TGAData));
 	if(!data) {
 		TGA_EXAMPLE_ERROR(TGAStrErrorCode(TGA_OOM));
-		return 0;
+		return 1;
 	}
 	
         printf("[open] name=%s, mode=%s\n", argv[1], "r");
 	tga = TGAOpen(argv[1], "r");
-	if (!tga || tga->last != TGA_OK) {
+	if (!TGA_SUCCEEDED(tga)) {
 		TGA_EXAMPLE_ERROR(TGAStrError(tga));
-		return 0;
+		return 1;
 	}
 	
 	printf("[read] image\n");
 	data->flags = TGA_IMAGE_INFO;
-	if (TGAReadImage(tga, data) != TGA_OK) {
+	TGAReadImage(tga, data);
+	if (!TGA_SUCCEEDED(tga)) {
 		TGA_EXAMPLE_ERROR(TGAStrError(tga));
-		return 0;
+		return 1;
 	}
 
-        if (data->flags & TGA_IMAGE_INFO) {
+	if (data->flags & TGA_IMAGE_INFO) {
 		printf("[info] width=%i\n", tga->hdr.width);
 		printf("[info] height=%i\n", tga->hdr.height);
 		
@@ -81,5 +82,5 @@ int main(int argc, char *argv[])
         TGAClose(tga);
         printf("[exit] main\n");
 
-	return 1;
+	return 0;
 }

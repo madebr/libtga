@@ -149,6 +149,8 @@ void TGAClose(TGA *tga);
 
 void TGAClearError(TGA *tga);
 
+#define TGA_SUCCEEDED(TGA) ((TGA != 0) && ((TGA)->last == TGA_OK))
+
 const char *TGAStrErrorCode(tuint8 code);
 const char* TGAStrError(TGA *tga);
 
