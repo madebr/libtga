@@ -24,15 +24,8 @@
 
 #include <stdio.h>
 
-/* Tell C++ that we have C types and declarations. */
-#undef __BEGIN_DECLS
-#undef __END_DECLS
 #ifdef __cplusplus
-# define __BEGIN_DECLS extern "C" {
-# define __END_DECLS }
-#else
-# define __BEGIN_DECLS
-# define __END_DECLS
+extern "C" {
 #endif
 
 /* Some macros to cope with non-ANSI C or C++ compilers.
@@ -147,10 +140,6 @@ struct _TGA {
 	TGAErrorProc 	error;		/* user-defined error proc */
 };
 
-
-__BEGIN_DECLS
-
-
 TGA* TGAOpen __P((const char *name, const char *mode));
 
 TGA* TGAOpenFd __P((FILE *fd));
@@ -191,9 +180,6 @@ void __TGAbgr2rgb __P((tbyte *data, size_t size, size_t bytes));
 void TGAClose __P((TGA *tga));
 
 
-__END_DECLS
-
-
 #define TGA_HEADER_SIZE         18
 #define TGA_CMAP_SIZE(tga)      ((tga)->hdr.map_len * (tga)->hdr.map_entry / 8)
 #define TGA_CMAP_OFF(tga) 	(TGA_HEADER_SIZE + (tga)->hdr.id_len)
@@ -210,5 +196,8 @@ if((tga) && (tga)->error) (tga)->error(tga, code);\
 fprintf(stderr, "Libtga:%s:%d: %s\n", __FILE__, __LINE__, TGAStrError(code));\
 if(tga) (tga)->last = code\
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __TGA_H */
