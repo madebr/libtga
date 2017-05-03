@@ -31,7 +31,6 @@ extern "C" {
 /* Some macros to cope with non-ANSI C or C++ compilers.
  * (NOTE: This shouldn't be neccessary anymore nowadays)
  */
-#define __P(args) args
 
 /* __FILE__ and __LINE__ are gcc specific */
 #ifndef __FILE__
@@ -140,44 +139,44 @@ struct _TGA {
 	TGAErrorProc 	error;		/* user-defined error proc */
 };
 
-TGA* TGAOpen __P((const char *name, const char *mode));
+TGA* TGAOpen(const char *name, const char *mode);
 
-TGA* TGAOpenFd __P((FILE *fd));
+TGA* TGAOpenFd(FILE *fd);
 
 
-int TGAReadHeader __P((TGA *tga));
+int TGAReadHeader(TGA *tga);
 
-int TGAReadImageId __P((TGA *tga, tbyte **id));
+int TGAReadImageId(TGA *tga, tbyte **id);
 
-int TGAReadColorMap __P((TGA *tga, tbyte **cmap, tuint32 flags));
+int TGAReadColorMap(TGA *tga, tbyte **cmap, tuint32 flags);
 
-size_t TGAReadScanlines __P((TGA *tga, tbyte *buf, size_t sln, size_t n,
-			     tuint32 flags));
+size_t TGAReadScanlines(TGA *tga, tbyte *buf, size_t sln, size_t n,
+			     tuint32 flags);
 
-int TGAReadImage __P((TGA *tga, TGAData *data));
+int TGAReadImage(TGA *tga, TGAData *data);
 
 void TGAFreeTGAData(TGAData *data);
 
-int TGAWriteHeader __P((TGA *tga));
+int TGAWriteHeader(TGA *tga);
 
-int TGAWriteImageId __P((TGA *tga, const tbyte *id));
+int TGAWriteImageId(TGA *tga, const tbyte *id);
 
-int TGAWriteColorMap __P((TGA *tga, tbyte *cmap, tuint32 flags));
+int TGAWriteColorMap(TGA *tga, tbyte *cmap, tuint32 flags);
 
-size_t TGAWriteScanlines __P((TGA *tga, tbyte *buf, size_t sln, size_t n,
-			      tuint32 flags));
+size_t TGAWriteScanlines(TGA *tga, tbyte *buf, size_t sln, size_t n,
+			      tuint32 flags);
 
-int TGAWriteImage __P((TGA *tga, TGAData *data));
-
-
-const char* TGAStrError __P((tuint8 code));
-
-tlong __TGASeek __P((TGA *tga, tlong off, int whence));
-
-void __TGAbgr2rgb __P((tbyte *data, size_t size, size_t bytes));
+int TGAWriteImage(TGA *tga, TGAData *data);
 
 
-void TGAClose __P((TGA *tga));
+const char* TGAStrError(tuint8 code);
+
+tlong __TGASeek(TGA *tga, tlong off, int whence);
+
+void __TGAbgr2rgb(tbyte *data, size_t size, size_t bytes);
+
+
+void TGAClose(TGA *tga);
 
 
 #define TGA_HEADER_SIZE         18
