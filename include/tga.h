@@ -23,6 +23,7 @@
 #define __TGA_H 1
 
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,17 +71,11 @@ enum {
 extern const char *
 tga_error_strings[];
 
-#if SIZEOF_UNSIGNED_INT == 4
-        typedef unsigned int tuint32;
-        typedef unsigned short tuint16;
-#else
-        typedef unsigned long tuint32;
-        typedef unsigned int tuint16;
-#endif
+typedef uint32_t	tuint32;
+typedef uint16_t	tuint16;
+typedef uint8_t	tuint8;
 
-typedef unsigned char tuint8;
-
-typedef tuint8  tbyte;
+typedef tuint8	tbyte;
 typedef tuint16	tshort;
 typedef tuint32	tlong;
 
