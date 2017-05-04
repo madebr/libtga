@@ -164,16 +164,16 @@ int
 TGAReadImageId(TGA    *tga, 
 	       tbyte **buf)
 {
-	if (!tga || tga->hdr.id_len == 0) return 0;
+	if (!tga || tga->hdr.id_len == 0 || !buf) return TGA_ERROR;
 
 	__TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
 	if (!__TGA_SUCCEEDED(tga)) {
 		return __TGA_LASTERR(tga);
 	}
-	*buf = (tbyte*)malloc(tga->hdr.id_len);
-	if (!buf) {
+	*buf = (tbyte*) malloc(tga->hdr.id_len);
+	if (!*buf) {
 		TGA_ERROR(tga, TGA_OOM);
-		return 0;
+		return __TGA_LASTERR(tga);
 	}
 
 	TGARead(tga, *buf, tga->hdr.id_len, 1);
