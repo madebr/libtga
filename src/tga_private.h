@@ -5,7 +5,7 @@
 
 tlong __TGASeek(TGA *tga, tlong off, int whence);
 
-void __TGAbgr2rgb(tbyte *data, size_t size, size_t bytes);
+void __TGAbgr2rgb(tbyte *data, size_t size, size_t stride);
 
 #define TGA_HEADER_SIZE         18
 #define TGA_CMAP_SIZE(tga)      ((tga)->hdr.map_len * (tga)->hdr.map_entry / 8)

@@ -159,9 +159,9 @@ __TGASeek(TGA  *tga,
 void
 __TGAbgr2rgb(tbyte  *data, 
 	     size_t  size, 
-	     size_t  bytes)
+	     size_t  stride)
 {
-	for (size_t i = 0; i < size; i += bytes) {
+	for (size_t i = 0; i < size; i += stride) {
 		tbyte tmp = data[i];
 		data[i] = data[i + 2];
 		data[i + 2] = tmp;
