@@ -16,7 +16,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
 #include <stdio.h>
@@ -85,9 +85,8 @@ TGAWriteHeader(TGA *tga)
 	if (!tga) return 0;
 
 	__TGASeek(tga, 0, SEEK_SET);
-	if (tga->off != 0) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
 
 	tmp = (tbyte*)malloc(18);
@@ -143,11 +142,10 @@ TGAWriteImageId(TGA 	    *tga,
 	if (!tga || !buf || tga->hdr.id_len == 0) return 0;
 		
 	__TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
-	if (tga->off != TGA_HEADER_SIZE) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
-	       
+
 	if (!TGAWrite(tga, buf, tga->hdr.id_len, 1)) {
 		TGA_ERROR(tga, TGA_WRITE_FAIL);
 		return 0;
@@ -175,9 +173,8 @@ TGAWriteColorMap(TGA     *tga,
 	}
 
 	__TGASeek(tga, off, SEEK_SET);
-	if (tga->off != off) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
 		
 	if (!TGAWrite(tga, buf, n, 1)) {
@@ -269,10 +266,11 @@ TGAWriteScanlines(TGA 	  *tga,
 	sln_size = TGA_SCANLINE_SIZE(tga);
 	off = TGA_IMG_DATA_OFF(tga) + (sln * sln_size);
 	
-	if (tga->off != off) __TGASeek(tga, off, SEEK_SET);
 	if (tga->off != off) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
+		__TGASeek(tga, off, SEEK_SET);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
+		}
 	}
 
 	if (TGA_CAN_SWAP(tga->hdr.depth) && (flags & TGA_RGB)) 

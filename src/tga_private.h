@@ -20,9 +20,16 @@ void __TGAbgr2rgb(tbyte *data, size_t size, size_t bytes);
 
 const char *__TGAStrError(tuint8 code);
 
+tuint8 TGA_handle_set_error(TGA *tga, tuint8 code);
+
+#define __TGA_SUCCEEDED(TGA) ((TGA)->last == TGA_OK)
+
+#define __TGA_LASTERR(TGA) ((TGA)->last)
+
 #define TGA_ERROR(tga, code) \
-if((tga) && (tga)->error) (tga)->error(tga, code);\
-fprintf(stderr, "Libtga:%s:%d: %s\n", __FILE__, __LINE__, TGAStrErrorCode(code));\
-if(tga) (tga)->last = code\
+	do { \
+		fprintf(stderr, "libtga: %s:%u %s\n", __FILE__, __LINE__, TGAStrErrorCode(code)); \
+		TGA_handle_set_error((tga), (code)); \
+	} while (0)
 
 #endif /* TGA_PRIVATE_H */

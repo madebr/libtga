@@ -16,7 +16,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
  
 #ifndef __TGA_H
@@ -56,14 +56,9 @@ enum {
 	TGA_SEEK_FAIL,
 	TGA_READ_FAIL,
 	TGA_WRITE_FAIL,
-	TGA_UNKNOWN_SUB_FORMAT  /* invalid bit depth */
+	TGA_UNKNOWN_SUB_FORMAT, /* invalid bit depth */
+        TGA_ERRORS_NB
 };
-
-#define TGA_ERRORS 8  /* total number of error codes */
-
-/* text strings corresponding to the error codes */
-extern const char *
-tga_error_strings[];
 
 typedef uint32_t	tuint32;
 typedef uint16_t	tuint16;
@@ -76,7 +71,6 @@ typedef tuint32	tlong;
 typedef struct _TGAHeader TGAHeader;
 typedef struct _TGAData	  TGAData;
 typedef struct _TGA	  TGA;
-
 
 typedef void (*TGAErrorProc)(TGA*, int);
 

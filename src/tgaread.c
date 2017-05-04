@@ -16,7 +16,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
  
 #include <stdio.h>
@@ -104,12 +104,11 @@ TGAReadHeader (TGA *tga)
 	if (!tga) return 0;
 
 	__TGASeek(tga, 0, SEEK_SET);
-	if (tga->off != 0) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
 
-	tmp = (tbyte*)malloc(TGA_HEADER_SIZE);
+	tmp = (tbyte*) malloc(TGA_HEADER_SIZE);
 	if (!tmp) {
 		TGA_ERROR(tga, TGA_OOM);
 		return 0;
@@ -167,11 +166,10 @@ TGAReadImageId(TGA    *tga,
 	       tbyte **buf)
 {
 	if (!tga || tga->hdr.id_len == 0) return 0;
-       
+
 	__TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
-	if (tga->off != TGA_HEADER_SIZE) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
 	*buf = (tbyte*)malloc(tga->hdr.id_len);
 	if (!buf) {
@@ -203,7 +201,12 @@ TGAReadColorMap (TGA 	  *tga,
 	if (n <= 0) return 0;
 	
 	off = TGA_CMAP_OFF(tga);
-	if (tga->off != off) __TGASeek(tga, off, SEEK_SET);
+	if (tga->off != off) {
+		__TGASeek(tga, off, SEEK_SET);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
+		}
+	}
 	if (tga->off != off) {
 		TGA_ERROR(tga, TGA_SEEK_FAIL);
 		return 0;
@@ -299,7 +302,12 @@ TGAReadScanlines(TGA 	*tga,
 	sln_size = TGA_SCANLINE_SIZE(tga);
 	off = TGA_IMG_DATA_OFF(tga) + (sln * sln_size);
 	
-	if (tga->off != off) __TGASeek(tga, off, SEEK_SET);
+	if (tga->off != off) {
+		__TGASeek(tga, off, SEEK_SET);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
+		}
+	}
 	if (tga->off != off) {
 		TGA_ERROR(tga, TGA_SEEK_FAIL);
 		return 0;
