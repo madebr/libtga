@@ -43,15 +43,22 @@ int
 TGAReadImage(TGA     *tga, 
 	     TGAData *data)
 {
-	if (!tga) return 0;
-
-	if (TGAReadHeader(tga) != TGA_OK) {
-		TGA_ERROR(tga, tga->last);
-		return 0;
+	if (!tga) return TGA_ERROR;
+	if (!data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
 	}
+
+	TGAReadHeader(tga);
+	if (!__TGA_SUCCEEDED(tga)) {
+		data->flags &= ~TGA_IMAGE_INFO;
+		return __TGA_LASTERR(tga);
+	}
+	data->flags |= TGA_IMAGE_INFO;
+
+	data->img_id = (tbyte *) 0;
 	data->cmap = (tbyte *) 0;
 	data->img_data = (tbyte *) 0;
-	data->img_id = (tbyte *) 0;
 
 	if (data->flags & TGA_IMAGE_ID) {
 		TGAReadImageId(tga, data);
@@ -62,32 +69,24 @@ TGAReadImage(TGA     *tga,
 
 	if (data->flags & TGA_IMAGE_DATA) {
 		if (TGA_IS_MAPPED(tga)) {
-			if (!TGAReadColorMap(tga, data)) {
-				data->flags &= ~TGA_COLOR_MAP;
-				TGA_ERROR(tga, tga->last);
-				return 0;
-			} else {
-				data->flags |= TGA_COLOR_MAP;
+			TGAReadColorMap(tga, data);
+			if (!__TGA_SUCCEEDED(tga)) {
+				return __TGA_LASTERR(tga);
 			}
+		} else {
+			data->flags &= ~TGA_COLOR_MAP;
 		}
-		
-		data->img_data = (tbyte*)malloc(TGA_IMG_DATA_SIZE(tga));
-		if (!data->img_data) {
-			data->flags &= ~TGA_IMAGE_DATA;
-			TGA_ERROR(tga, TGA_OOM);
-			return 0;
-		}
-		
-		if (TGAReadScanlines(tga, data->img_data, 0, tga->hdr.height, data->flags) != tga->hdr.height) {
-			data->flags &= ~TGA_IMAGE_DATA;
-			TGA_ERROR(tga, tga->last);
+
+		TGAReadScanlines(tga, data);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
 		}
 	}
-	tga->last = TGA_OK;
 	return TGA_OK;
 }
 
-void TGAFreeTGAData(TGAData *data)
+void
+TGAFreeTGAData(TGAData *data)
 {
 	if (data->cmap)
 		free(data->cmap);
@@ -162,7 +161,11 @@ int
 TGAReadImageId(TGA    *tga, 
 	       TGAData *data)
 {
-	if (!tga || !data) return TGA_ERROR;
+	if (!tga) return TGA_ERROR;
+	if (!data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
 	if (tga->hdr.id_len == 0) {
 		data->flags &= ~TGA_IMAGE_ID;
 		return TGA_OK;
@@ -191,11 +194,42 @@ TGAReadImageId(TGA    *tga,
 	return TGA_OK;
 }
 
+
+int
+convert_16_to_24(TGA *tga, tbyte *buf, size_t size_buf, tbyte **bufout)
+{
+	if (size_buf % 2) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
+	size_t new_size = size_buf + size_buf / 2;
+
+	tbyte *newbuf = (tbyte *) malloc(new_size);
+	if (!newbuf) {
+		TGA_ERROR(tga, TGA_OOM);
+		return __TGA_LASTERR(tga);
+	}
+
+	for(size_t buf_i = size_buf, newbuf_i = new_size; buf_i != 0; buf_i -= 2, newbuf_i -= 3) {
+		tlong tmp = buf[buf_i - 2] + buf[buf_i - 1] * 256;
+		newbuf[newbuf_i - 3] = (tmp >> 10) & 0x1F;
+		newbuf[newbuf_i - 2] = (tmp >> 5) & 0x1F;
+		newbuf[newbuf_i - 1] = (tmp >> 5) & 0x1F;
+	}
+	*bufout = newbuf;
+	return TGA_OK;
+}
+
+
 int
 TGAReadColorMap (TGA 	  *tga,
 		 TGAData *data)
 {
-	if (!tga || !data) return TGA_ERROR;
+	if (!tga) return TGA_ERROR;
+	if (!data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
 
 	tlong n = TGA_CMAP_SIZE(tga);
 	if (n == 0) {
@@ -230,28 +264,14 @@ TGAReadColorMap (TGA 	  *tga,
 	}
 
 	if (tga->hdr.map_entry == 15 || tga->hdr.map_entry == 16) {
-		n = read + read / 2;
-		tbyte *cmap = (tbyte *) malloc(n);
-		if (!cmap) {
+		tbyte *newcmap;
+		convert_16_to_24(tga, data->cmap, read, &newcmap);
+		if (!__TGA_SUCCEEDED(tga)) {
 			data->flags &= ~TGA_COLOR_MAP;
-			TGA_ERROR(tga, TGA_OOM);
 			return __TGA_LASTERR(tga);
-		}
-
-		if (read % 2) {
-			data->flags &= ~TGA_COLOR_MAP;
-			TGA_ERROR(tga, TGA_ERROR);
-			return __TGA_LASTERR(tga);
-		}
-		for(tlong i = read; i != 0; i -= 2) {
-			tlong tmp = data->cmap[i - 2] + data->cmap[i - 1] * 256;
-			cmap[n - 2] = (tmp >> 10) & 0x1F;
-			cmap[n - 1] = (tmp >> 5) & 0x1F;
-			cmap[n] = (tmp >> 5) & 0x1F;
-			n -= 3;
 		}
 		free(data->cmap);
-		data->cmap = cmap;
+		data->cmap = newcmap;
 	}
 
 	data->flags |= TGA_COLOR_MAP;
@@ -269,7 +289,7 @@ TGAReadRLE(TGA   *tga,
 	tshort x;
 	tshort width = tga->hdr.width;
 	FILE *fd = tga->fd;
-	
+
 	if (!tga || !buf) return TGA_ERROR;
 
 	for (x = 0; x < width; ++x) {
@@ -293,76 +313,80 @@ TGAReadRLE(TGA   *tga,
 		}
 		buf += bytes;
 	}
-		
+
 	tga->last = TGA_OK;
 	return TGA_OK;
 }
 
-size_t
-TGAReadScanlines(TGA 	*tga, 
-		 tbyte  *buf, 
-		 size_t  sln,
-		 size_t  n,
-		 tuint32 flags)
-{	
-	tlong i, off;
-	size_t sln_size, read, tmp;
+int
+TGAReadScanlines(TGA	 *tga,
+		 TGAData *data)
+{
+	if (!tga) return TGA_ERROR;
 
-	if (!tga || !buf) return 0;
+	if (!tga->hdr.img_t) {
+		data->flags &= ~TGA_IMAGE_DATA;
+		return TGA_OK;
+	}
 
-	sln_size = TGA_SCANLINE_SIZE(tga);
-	off = TGA_IMG_DATA_OFF(tga) + (sln * sln_size);
-	
+	if (!data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
+
+	data->img_data = (tbyte*) realloc(data->img_data, TGA_IMG_DATA_SIZE(tga));
+	if (!data->img_data) {
+		data->flags &= ~TGA_IMAGE_DATA;
+		TGA_ERROR(tga, TGA_OOM);
+		return __TGA_LASTERR(tga);
+	}
+
+	size_t sln_start = 0;
+	size_t sln_stop = tga->hdr.height;
+	size_t sln_size = TGA_SCANLINE_SIZE(tga);
+	tlong off = TGA_IMG_DATA_OFF(tga) + (sln_start * sln_size);
+
 	if (tga->off != off) {
 		__TGASeek(tga, off, SEEK_SET);
 		if (!__TGA_SUCCEEDED(tga)) {
 			return __TGA_LASTERR(tga);
 		}
 	}
-	if (tga->off != off) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
-	}
 
-	if(TGA_IS_ENCODED(tga)) {
-		for(read = 0; read <= n; ++read) {
-			if(TGAReadRLE(tga, buf + ((sln + read) * sln_size)) !=
-				TGA_OK) break;
+	if (TGA_IS_ENCODED(tga)) {
+		for(size_t sln_i = sln_start; sln_i < sln_stop; ++sln_i) {
+			TGAReadRLE(tga, data->img_data + (sln_i * sln_size));
+			if (!__TGA_SUCCEEDED(tga)) {
+				data->flags &= ~TGA_IMAGE_DATA;
+				return __TGA_LASTERR(tga);
+			}
 		}
 		tga->hdr.img_t -= 8;
 	} else {
-		read = TGARead(tga, buf, sln_size, n);
+		TGARead(tga, data->img_data + (sln_start * sln_size),
+			sln_size, sln_stop - sln_start);
 		if (!__TGA_SUCCEEDED(tga)) {
-			return 0;
+			return __TGA_LASTERR(tga);
 		}
 	}
-	if(read != n) {
-		TGA_ERROR(tga, TGA_READ_FAIL);
-		return read;
+
+	if (TGA_CAN_SWAP(tga->hdr.depth) && (data->flags & TGA_RGB)) {
+		__TGAbgr2rgb(data->img_data + (sln_start * sln_size),
+			sln_size * (sln_stop - sln_start),
+			tga->hdr.depth / 8);
 	}
-	
-	if (TGA_CAN_SWAP(tga->hdr.depth) && (flags & TGA_RGB)) {
-		__TGAbgr2rgb(buf + (sln_size * sln), sln_size * n, 
-			   tga->hdr.depth / 8);
-	}
-	
+
 	if (tga->hdr.depth == 15 || tga->hdr.depth == 16) {
-		n = read + read / 2;	
-		buf = (tbyte*)realloc(buf, n);
-		if (!buf) {
-			TGA_ERROR(tga, TGA_OOM);
-			return 0;
+		tbyte *new_img;
+		convert_16_to_24(tga, data->img_data + (sln_start * sln_size),
+			(sln_stop - sln_start) * sln_size, &new_img);
+		if (!__TGA_SUCCEEDED(tga)) {
+			data->flags &= ~TGA_COLOR_MAP;
+			return __TGA_LASTERR(tga);
 		}
-	
-		for(i = read - 1; i >= 0; i -= 2) {
-			tmp = buf[i - 1] + buf[i] * 255;
-			buf[n - 2] = (tmp >> 10) & 0x1F;
-			buf[n - 1] = (tmp >> 5) & 0x1F;
-			buf[n] = (tmp >> 5) & 0x1F;
-			n -= 3;
-		}
+		free(data->img_data);
+		data->img_data = new_img;
 	}
-	
-	tga->last = TGA_OK;
-	return read;
+
+	return TGA_OK;
 }

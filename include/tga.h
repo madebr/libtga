@@ -98,7 +98,7 @@ struct _TGAData {
 	tbyte	*img_id;	/* image id */
 	tbyte	*cmap;		/* color map */
 	tbyte	*img_data;	/* image data */
-	tuint32  flags;
+	tuint32	 flags;
 };
 
 /* TGA image handle */
@@ -121,8 +121,7 @@ int TGAReadImageId(TGA *tga, TGAData *data);
 
 int TGAReadColorMap(TGA *tga, TGAData *data);
 
-size_t TGAReadScanlines(TGA *tga, tbyte *buf, size_t sln, size_t n,
-			     tuint32 flags);
+int TGAReadScanlines(TGA *tga, TGAData *data);
 
 int TGAReadImage(TGA *tga, TGAData *data);
 
@@ -143,7 +142,7 @@ void TGAClose(TGA *tga);
 
 void TGAClearError(TGA *tga);
 
-#define TGA_SUCCEEDED(TGA) ((TGA != 0) && ((TGA)->last == TGA_OK))
+#define TGA_SUCCEEDED(TGA) (((TGA) != 0) && ((TGA)->last == TGA_OK))
 
 const char *TGAStrErrorCode(tuint8 code);
 const char* TGAStrError(TGA *tga);
