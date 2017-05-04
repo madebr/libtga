@@ -18,10 +18,10 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <strings.h>
 #include <tga.h>
 #include "tga_private.h"
 
@@ -39,7 +39,7 @@ TGARead(TGA    *tga,
 	return read;
 }
 
-int 
+int
 TGAReadImage(TGA     *tga, 
 	     TGAData *data)
 {
@@ -49,9 +49,9 @@ TGAReadImage(TGA     *tga,
 		TGA_ERROR(tga, tga->last);
 		return 0;
 	}
-        data->cmap = (tbyte *) 0;
-        data->img_data = (tbyte *) 0;
-        data->img_id = (tbyte *) 0;
+	data->cmap = (tbyte *) 0;
+	data->img_data = (tbyte *) 0;
+	data->img_id = (tbyte *) 0;
 
 	if ((data->flags & TGA_IMAGE_ID) && tga->hdr.id_len != 0) {
 		if (TGAReadImageId(tga, &data->img_id) != TGA_OK) {
@@ -91,33 +91,31 @@ TGAReadImage(TGA     *tga,
 
 void TGAFreeTGAData(TGAData *data)
 {
-    if (data->cmap)
-        free(data->cmap);
-    if (data->img_data)
-        free(data->img_data);
-    if (data->img_id)
-        free(data->img_id);
+	if (data->cmap)
+		free(data->cmap);
+	if (data->img_data)
+		free(data->img_data);
+	if (data->img_id)
+		free(data->img_id);
 }
 
 int
 TGAReadHeader (TGA *tga)
 {
-	tbyte *tmp;
-	
-	if (!tga) return 0;
+	if (!tga) return TGA_ERROR;
 
 	__TGASeek(tga, 0, SEEK_SET);
 	if (!__TGA_SUCCEEDED(tga)) {
 		return __TGA_LASTERR(tga);
 	}
 
-	tmp = (tbyte*) malloc(TGA_HEADER_SIZE);
+	tbyte *tmp = (tbyte*) malloc(TGA_HEADER_SIZE);
 	if (!tmp) {
 		TGA_ERROR(tga, TGA_OOM);
-		return 0;
+		return __TGA_LASTERR(tga);
 	}
-		
-	memset(tmp, 0, TGA_HEADER_SIZE);
+
+	bzero(tmp, TGA_HEADER_SIZE);
 
 	TGARead(tga, tmp, TGA_HEADER_SIZE, 1);
 	if (!__TGA_SUCCEEDED(tga)) {
@@ -125,43 +123,41 @@ TGAReadHeader (TGA *tga)
 		return __TGA_LASTERR(tga);
 	}
 
-	tga->hdr.id_len 	= tmp[0];
-	tga->hdr.map_t 		= tmp[1];
-	tga->hdr.img_t 		= tmp[2];
-	tga->hdr.map_first 	= tmp[3] + tmp[4] * 256;
-	tga->hdr.map_len 	= tmp[5] + tmp[6] * 256;
-	tga->hdr.map_entry	= tmp[7];
-	tga->hdr.x 		= tmp[8] + tmp[9] * 256;
-	tga->hdr.y 		= tmp[10] + tmp[11] * 256;
-	tga->hdr.width 		= tmp[12] + tmp[13] * 256;
-	tga->hdr.height 	= tmp[14] + tmp[15] * 256;
-	tga->hdr.depth 		= tmp[16];
+	tga->hdr.id_len		= tmp[ 0];
+	tga->hdr.map_t		= tmp[ 1];
+	tga->hdr.img_t		= tmp[ 2];
+	tga->hdr.map_first	= tmp[ 3] + ((tshort) tmp[ 4]) * 256;
+	tga->hdr.map_len	= tmp[ 5] + ((tshort) tmp[ 6]) * 256;
+	tga->hdr.map_entry	= tmp[ 7];
+	tga->hdr.x		= tmp[ 8] + ((tshort) tmp[ 9]) * 256;
+	tga->hdr.y		= tmp[10] + ((tshort) tmp[11]) * 256;
+	tga->hdr.width		= tmp[12] + ((tshort) tmp[13]) * 256;
+	tga->hdr.height		= tmp[14] + ((tshort) tmp[15]) * 256;
+	tga->hdr.depth		= tmp[16];
 	tga->hdr.alpha		= tmp[17] & 0x0f;
-	tga->hdr.horz	        = (tmp[17] & 0x10) ? TGA_TOP : TGA_BOTTOM;
-	tga->hdr.vert	        = (tmp[17] & 0x20) ? TGA_RIGHT : TGA_LEFT;
+	tga->hdr.horz		= (tmp[17] & 0x10) ? TGA_TOP : TGA_BOTTOM;
+	tga->hdr.vert		= (tmp[17] & 0x20) ? TGA_RIGHT : TGA_LEFT;
 
 	if (tga->hdr.map_t && tga->hdr.depth != 8) {
 		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
-		free(tga);
 		free(tmp);
-		return 0;
-	} 
+		return __TGA_LASTERR(tga);
+	}
 
-	if (tga->hdr.depth != 8 && 
-	    tga->hdr.depth != 15 && 
+	if (tga->hdr.depth != 8 &&
+	    tga->hdr.depth != 15 &&
 	    tga->hdr.depth != 16 &&
 	    tga->hdr.depth != 24 &&
 	    tga->hdr.depth != 32) 
 	{
 		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
-		free(tga);
 		free(tmp);
-		return 0;
+		return __TGA_LASTERR(tga);
 	}
 
 	free(tmp);
 	tga->last = TGA_OK;
-	return TGA_OK;
+	return __TGA_LASTERR(tga);
 }
 
 int

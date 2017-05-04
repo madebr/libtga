@@ -57,7 +57,7 @@ enum {
 	TGA_READ_FAIL,
 	TGA_WRITE_FAIL,
 	TGA_UNKNOWN_SUB_FORMAT, /* invalid bit depth */
-        TGA_ERRORS_NB
+	TGA_ERRORS_NB
 };
 
 typedef uint32_t	tuint32;
@@ -88,9 +88,9 @@ struct _TGAHeader {
 	tshort	width;		/* width of image */
 	tshort	height;		/* height of image */
 	tbyte	depth;		/* pixel-depth of image */
-	tbyte   alpha;          /* alpha bits */
-	tbyte	horz;	        /* horizontal orientation */
-	tbyte	vert;	        /* vertical orientation */
+	tbyte	alpha;		/* alpha bits */
+	tbyte	horz;		/* horizontal orientation */
+	tbyte	vert;		/* vertical orientation */
 };
 
 /* TGA image data */
