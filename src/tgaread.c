@@ -32,6 +32,9 @@ TGARead(TGA    *tga,
 	size_t 	n)
 {
 	size_t read = fread(buf, size, n, tga->fd);
+	if (read != n) {
+		TGA_ERROR(tga, TGA_READ_FAIL);
+	}
 	tga->off = ftell(tga->fd);
 	return read;
 }
@@ -115,11 +118,11 @@ TGAReadHeader (TGA *tga)
 	}
 		
 	memset(tmp, 0, TGA_HEADER_SIZE);
-		
-	if (!TGARead(tga, tmp, TGA_HEADER_SIZE, 1)) {
+
+	TGARead(tga, tmp, TGA_HEADER_SIZE, 1);
+	if (!__TGA_SUCCEEDED(tga)) {
 		free(tmp);
-		TGA_ERROR(tga, TGA_READ_FAIL);
-		return 0;
+		return __TGA_LASTERR(tga);
 	}
 
 	tga->hdr.id_len 	= tmp[0];
@@ -177,11 +180,11 @@ TGAReadImageId(TGA    *tga,
 		return 0;
 	}
 
-	if (!TGARead(tga, *buf, tga->hdr.id_len, 1)) {
+	TGARead(tga, *buf, tga->hdr.id_len, 1);
+	if (!__TGA_SUCCEEDED(tga)) {
 		free(*buf);
-                *buf = 0;
-		TGA_ERROR(tga, TGA_READ_FAIL);
-		return 0;
+		*buf = 0;
+		return __TGA_LASTERR(tga);
 	}
 
 	tga->last = TGA_OK;
@@ -218,15 +221,15 @@ TGAReadColorMap (TGA 	  *tga,
 		return 0;
 	}
 
-	if ((read = TGARead(tga, *buf, n, 1)) != 1) {
-		TGA_ERROR(tga, TGA_READ_FAIL);
-		return 0;
-	}	
-		
+	read = TGARead(tga, *buf, n, 1);
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
+	}
+
 	if (TGA_CAN_SWAP(tga->hdr.map_entry) && (flags & TGA_RGB)) {
 		__TGAbgr2rgb(*buf, TGA_CMAP_SIZE(tga), tga->hdr.map_entry / 8);
 	}
-	
+
 	if (tga->hdr.map_entry == 15 || tga->hdr.map_entry == 16) {
 		n = read + read / 2;
 		*buf = (tbyte*)realloc(*buf, n);
@@ -321,6 +324,9 @@ TGAReadScanlines(TGA 	*tga,
 		tga->hdr.img_t -= 8;
 	} else {
 		read = TGARead(tga, buf, sln_size, n);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return 0;
+		}
 	}
 	if(read != n) {
 		TGA_ERROR(tga, TGA_READ_FAIL);
