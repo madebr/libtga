@@ -56,16 +56,13 @@ TGA *
 TGAOpen(const char *file, 
 	const char *mode)
 {
- 	TGA *tga;
-	FILE *fd;
-
-	tga = (TGA*) malloc(sizeof(TGA));
+ 	TGA *tga = (TGA*) malloc(sizeof(TGA));
 	if (!tga) {
 		TGA_ERROR(tga, TGA_OOM);
 		return NULL;
 	}
 
-	fd = fopen(file, mode);
+	FILE *fd = fopen(file, mode);
 	if (!fd) {
 		TGA_ERROR(tga, TGA_OPEN_FAIL);
 		free(tga);
@@ -84,9 +81,7 @@ TGAOpen(const char *file,
 TGA *
 TGAOpenFd(FILE *fd)
 {
-	TGA *tga;
-
-	tga = (TGA*)malloc(sizeof(TGA));
+	TGA *tga = (TGA*)malloc(sizeof(TGA));
 	if (!tga) {
 		TGA_ERROR(tga, TGA_OOM);
 		return NULL;
@@ -166,11 +161,8 @@ __TGAbgr2rgb(tbyte  *data,
 	     size_t  size, 
 	     size_t  bytes)
 {
-	size_t i;
-	tbyte tmp;
-	
-	for (i = 0; i < size; i += bytes) {
-		tmp = data[i];
+	for (size_t i = 0; i < size; i += bytes) {
+		tbyte tmp = data[i];
 		data[i] = data[i + 2];
 		data[i + 2] = tmp;
 	}

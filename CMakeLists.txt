@@ -5,7 +5,7 @@ project(libtga VERSION 1.0.1)
 option(BUILD_SHARED "Build libtga as a shared library (default OFF)" OFF)
 option(BUILD_EXAMPLES "Build examples (default OFF)" OFF)
 
-set(CMAKE_C_FLAGS "-Wall -pedantic -Wextra")
+set(CMAKE_C_FLAGS "-Wall -pedantic -Wextra -std=c99")
 
 set(LIBTGA_PROJECT_PATH "${CMAKE_CURRENT_LIST_DIR}")
 
