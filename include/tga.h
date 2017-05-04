@@ -117,9 +117,9 @@ TGA* TGAOpenFd(FILE *fd);
 
 int TGAReadHeader(TGA *tga);
 
-int TGAReadImageId(TGA *tga, tbyte **id);
+int TGAReadImageId(TGA *tga, TGAData *data);
 
-int TGAReadColorMap(TGA *tga, tbyte **cmap, tuint32 flags);
+int TGAReadColorMap(TGA *tga, TGAData *data);
 
 size_t TGAReadScanlines(TGA *tga, tbyte *buf, size_t sln, size_t n,
 			     tuint32 flags);

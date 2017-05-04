@@ -53,18 +53,16 @@ TGAReadImage(TGA     *tga,
 	data->img_data = (tbyte *) 0;
 	data->img_id = (tbyte *) 0;
 
-	if ((data->flags & TGA_IMAGE_ID) && tga->hdr.id_len != 0) {
-		if (TGAReadImageId(tga, &data->img_id) != TGA_OK) {
-			data->flags &= ~TGA_IMAGE_ID;
-			TGA_ERROR(tga, tga->last);
+	if (data->flags & TGA_IMAGE_ID) {
+		TGAReadImageId(tga, data);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
 		}
-	} else {
-		data->flags &= ~TGA_IMAGE_ID;
 	}
 
 	if (data->flags & TGA_IMAGE_DATA) {
 		if (TGA_IS_MAPPED(tga)) {
-			if (!TGAReadColorMap(tga, &data->cmap, data->flags)) {
+			if (!TGAReadColorMap(tga, data)) {
 				data->flags &= ~TGA_COLOR_MAP;
 				TGA_ERROR(tga, tga->last);
 				return 0;
@@ -135,8 +133,8 @@ TGAReadHeader (TGA *tga)
 	tga->hdr.height		= tmp[14] + ((tshort) tmp[15]) * 256;
 	tga->hdr.depth		= tmp[16];
 	tga->hdr.alpha		= tmp[17] & 0x0f;
-	tga->hdr.horz		= (tmp[17] & 0x10) ? TGA_TOP : TGA_BOTTOM;
-	tga->hdr.vert		= (tmp[17] & 0x20) ? TGA_RIGHT : TGA_LEFT;
+	tga->hdr.horz		= (tmp[17] & 0x10) ? TGA_RIGHT : TGA_LEFT;
+	tga->hdr.vert		= (tmp[17] & 0x20) ? TGA_TOP : TGA_BOTTOM;
 
 	if (tga->hdr.map_t && tga->hdr.depth != 8) {
 		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
@@ -162,87 +160,101 @@ TGAReadHeader (TGA *tga)
 
 int
 TGAReadImageId(TGA    *tga, 
-	       tbyte **buf)
+	       TGAData *data)
 {
-	if (!tga || tga->hdr.id_len == 0 || !buf) return TGA_ERROR;
+	if (!tga || !data) return TGA_ERROR;
+	if (tga->hdr.id_len == 0) {
+		data->flags &= ~TGA_IMAGE_ID;
+		return TGA_OK;
+	}
 
 	__TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
 	if (!__TGA_SUCCEEDED(tga)) {
+		data->flags &= ~TGA_IMAGE_ID;
 		return __TGA_LASTERR(tga);
 	}
-	*buf = (tbyte*) malloc(tga->hdr.id_len);
-	if (!*buf) {
+	data->img_id = (tbyte*) realloc(data->img_id, tga->hdr.id_len);
+	if (!data->img_id) {
+		data->flags &= ~TGA_IMAGE_ID;
 		TGA_ERROR(tga, TGA_OOM);
 		return __TGA_LASTERR(tga);
 	}
 
-	TGARead(tga, *buf, tga->hdr.id_len, 1);
+	TGARead(tga, data->img_id, tga->hdr.id_len, 1);
 	if (!__TGA_SUCCEEDED(tga)) {
-		free(*buf);
-		*buf = 0;
+		data->flags &= ~TGA_IMAGE_ID;
 		return __TGA_LASTERR(tga);
 	}
 
+	data->flags |= TGA_IMAGE_ID;
 	tga->last = TGA_OK;
 	return TGA_OK;
 }
 
 int
-TGAReadColorMap (TGA 	  *tga, 
-		 tbyte   **buf,
-		 tuint32   flags)
+TGAReadColorMap (TGA 	  *tga,
+		 TGAData *data)
 {
-	tlong i, n, off, read, tmp;
- 
-	if (!tga) return 0;
+	if (!tga || !data) return TGA_ERROR;
 
-	n = TGA_CMAP_SIZE(tga);
-	if (n <= 0) return 0;
-	
-	off = TGA_CMAP_OFF(tga);
+	tlong n = TGA_CMAP_SIZE(tga);
+	if (n == 0) {
+		data->flags &= ~TGA_COLOR_MAP;
+		return TGA_OK;
+	}
+
+	tlong off = TGA_CMAP_OFF(tga);
 	if (tga->off != off) {
 		__TGASeek(tga, off, SEEK_SET);
 		if (!__TGA_SUCCEEDED(tga)) {
+			data->flags &= ~TGA_COLOR_MAP;
 			return __TGA_LASTERR(tga);
 		}
 	}
-	if (tga->off != off) {
-		TGA_ERROR(tga, TGA_SEEK_FAIL);
-		return 0;
-	}
-	
-	*buf = (tbyte*)malloc(n);
-	if (!buf) { 
-		TGA_ERROR(tga, TGA_OOM);
-		return 0;
-	}
 
-	read = TGARead(tga, *buf, n, 1);
-	if (!__TGA_SUCCEEDED(tga)) {
+	data->cmap = (tbyte*) realloc(data->cmap, n);
+	if (!data->cmap) {
+		data->flags &= ~TGA_COLOR_MAP;
+		TGA_ERROR(tga, TGA_OOM);
 		return __TGA_LASTERR(tga);
 	}
 
-	if (TGA_CAN_SWAP(tga->hdr.map_entry) && (flags & TGA_RGB)) {
-		__TGAbgr2rgb(*buf, TGA_CMAP_SIZE(tga), tga->hdr.map_entry / 8);
+	tlong read = TGARead(tga, data->cmap, n, 1);
+	if (!__TGA_SUCCEEDED(tga)) {
+		data->flags &= ~TGA_COLOR_MAP;
+		return __TGA_LASTERR(tga);
+	}
+
+	if (TGA_CAN_SWAP(tga->hdr.map_entry) && (data->flags & TGA_RGB)) {
+		__TGAbgr2rgb(data->cmap, n, tga->hdr.map_entry / 8);
 	}
 
 	if (tga->hdr.map_entry == 15 || tga->hdr.map_entry == 16) {
 		n = read + read / 2;
-		*buf = (tbyte*)realloc(*buf, n);
-		if (!(*buf)) {
+		tbyte *cmap = (tbyte *) malloc(n);
+		if (!cmap) {
+			data->flags &= ~TGA_COLOR_MAP;
 			TGA_ERROR(tga, TGA_OOM);
-			return 0;
+			return __TGA_LASTERR(tga);
 		}
 
-		for(i = read - 1; i >= 0; i -= 2) {
-			tmp = *buf[i - 1] + *buf[i] * 255;
-			*buf[n - 2] = (tmp >> 10) & 0x1F;
-			*buf[n - 1] = (tmp >> 5) & 0x1F;
-			*buf[n] = (tmp >> 5) & 0x1F;
+		if (read % 2) {
+			data->flags &= ~TGA_COLOR_MAP;
+			TGA_ERROR(tga, TGA_ERROR);
+			return __TGA_LASTERR(tga);
+		}
+		for(tlong i = read; i != 0; i -= 2) {
+			tlong tmp = data->cmap[i - 2] + data->cmap[i - 1] * 256;
+			cmap[n - 2] = (tmp >> 10) & 0x1F;
+			cmap[n - 1] = (tmp >> 5) & 0x1F;
+			cmap[n] = (tmp >> 5) & 0x1F;
 			n -= 3;
 		}
+		free(data->cmap);
+		data->cmap = cmap;
 	}
-	
+
+	data->flags |= TGA_COLOR_MAP;
 	tga->last = TGA_OK;
 	return read;
 }
