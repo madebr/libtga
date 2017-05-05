@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <strings.h>
 #include <tga.h>
 #include "tga_private.h"
 
@@ -61,10 +61,9 @@ int TGAWriteImage(TGA 	  *tga,
 			return __TGA_LASTERR(tga);
 		}
 
-		if (TGAWriteScanlines(tga, data->img_data, 0, tga->hdr.height, data->flags) != tga->hdr.height) {
-			data->flags &= ~TGA_IMAGE_DATA;
-			TGA_ERROR(tga, tga->last);
-			tga->hdr.img_t = 0;
+		TGAWriteScanlines(tga, data);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
 		}
 	}
 
@@ -88,9 +87,6 @@ TGAWriteHeader(TGA *tga)
 
 	tbyte tmp[TGA_HEADER_SIZE];
 
-	tmp[0] = tga->hdr.id_len;
-	tmp[2] = tga->hdr.img_t;
-		
 	if (tga->hdr.map_t != 0) {
 		tmp[1] = 1;
 		tmp[3] = LSB_SH(tga->hdr.map_first);
@@ -99,9 +95,11 @@ TGAWriteHeader(TGA *tga)
 		tmp[6] = MSB_SH(tga->hdr.map_len);
 		tmp[7] = tga->hdr.map_entry;
 	} else {
-		tmp[1] = 0;
-		memset(tmp + 4, 0, 5);
+		bzero(tmp, 8);
 	}
+
+	tmp[0] = tga->hdr.id_len;
+	tmp[2] = tga->hdr.img_t;
 
 	tmp[8] = LSB_SH(tga->hdr.x);
 	tmp[9] = MSB_SH(tga->hdr.x);
@@ -261,19 +259,25 @@ TGAWriteRLE(TGA   *tga,
 
 
 size_t
-TGAWriteScanlines(TGA 	  *tga, 
-		  tbyte   *buf, 
-		  size_t   sln, 
-		  size_t   n,
-		  tuint32  flags)
+TGAWriteScanlines(TGA	  *tga, 
+		  TGAData *data)
 {
-	tlong off;
-	size_t wrote, sln_size;
+	if (!tga) return TGA_ERROR;
 
-	if (!tga || !buf) return 0;
+	if (!TGA_IMGTYPE_AVAILABLE(tga)) {
+		return TGA_OK;
+	}
 
-	sln_size = TGA_SCANLINE_SIZE(tga);
-	off = TGA_IMG_DATA_OFF(tga) + (sln * sln_size);
+	if (!data || !data->img_data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
+
+	size_t sln_start = 0;
+	size_t sln_stop = tga->hdr.height;
+	size_t sln_size = TGA_SCANLINE_SIZE(tga);
+	tlong off = TGA_IMG_DATA_OFF(tga) + (sln_start * sln_size);
+
 	
 	if (tga->off != off) {
 		__TGASeek(tga, off, SEEK_SET);
@@ -282,24 +286,28 @@ TGAWriteScanlines(TGA 	  *tga,
 		}
 	}
 
-	if (TGA_CAN_SWAP(tga->hdr.depth) && (flags & TGA_RGB)) 
-		__TGAbgr2rgb(buf + (sln * sln_size), sln_size * n, 
-			   tga->hdr.depth / 8);
-	
-	if (flags & TGA_RLE_ENCODE) {
-		for(wrote = 0; wrote < n; ++wrote) {
-			if(TGAWriteRLE(tga, buf + ((sln + wrote)*sln_size)) !=
-				TGA_OK) break;
+	if (TGA_CAN_SWAP(tga->hdr.depth) && (data->flags & TGA_RGB)) {
+		__TGAbgr2rgb(data->img_data + (sln_start * sln_size),
+			sln_size * (sln_stop - sln_start),
+			tga->hdr.depth / 8);
+	}
+
+	if (data->flags & TGA_RLE_ENCODE) {
+		for(size_t sln_i = sln_start; sln_i < sln_stop; ++sln_i) {
+			TGAWriteRLE(tga, data->img_data + (sln_i * sln_size));
+			if (!__TGA_SUCCEEDED(tga)) {
+				data->flags &= ~TGA_IMAGE_DATA;
+				return __TGA_LASTERR(tga);
+			}
 		}
-		tga->hdr.img_t += 8;
+		tga->hdr.img_t |= 0x8; //FIXME: do not change tga
 	} else {
-		wrote = TGAWrite(tga, buf, sln_size, n);
+		TGAWrite(tga, data->img_data + (sln_start * sln_size),
+			sln_size, sln_stop - sln_start);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
+		}
 	}
-	if (wrote != n) {
-		TGA_ERROR(tga, TGA_WRITE_FAIL);
-		return wrote;
-	}
-		
-	tga->last = TGA_OK;
-	return wrote;
+
+	return TGA_OK;
 }
