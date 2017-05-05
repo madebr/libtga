@@ -122,7 +122,10 @@ TGAClose(TGA *tga)
 void
 TGAClearError(TGA *tga)
 {
-	tga->last = TGA_OK;
+	if (tga) {
+		tga->last = TGA_OK;
+		clearerr(tga->fd);
+	}
 }
 
 
