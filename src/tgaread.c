@@ -222,15 +222,18 @@ TGAReadColorMap (TGA 	  *tga,
 		 TGAData *data)
 {
 	if (!tga) return TGA_ERROR;
-	if (!data) {
-		TGA_ERROR(tga, TGA_ERROR);
-		return __TGA_LASTERR(tga);
-	}
 
 	tlong n = TGA_CMAP_SIZE(tga);
 	if (n == 0) {
-		data->flags &= ~TGA_COLOR_MAP;
+		if (data) {
+			data->flags &= ~TGA_COLOR_MAP;
+		}
 		return TGA_OK;
+	}
+
+	if (!data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
 	}
 
 	tlong off = TGA_CMAP_OFF(tga);
