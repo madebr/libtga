@@ -26,9 +26,9 @@
 #include "tga_private.h"
 
 size_t
-TGARead(TGA    *tga, 
+TGARead(TGA    *tga,
 	tbyte  *buf,
-	size_t 	size, 
+	size_t 	size,
 	size_t 	n)
 {
 	size_t read = fread(buf, size, n, tga->fd);
@@ -40,7 +40,7 @@ TGARead(TGA    *tga,
 }
 
 int
-TGAReadImage(TGA     *tga, 
+TGAReadImage(TGA     *tga,
 	     TGAData *data)
 {
 	if (!tga) return TGA_ERROR;
@@ -143,7 +143,7 @@ TGAReadHeader (TGA *tga)
 	    tga->hdr.depth != 15 &&
 	    tga->hdr.depth != 16 &&
 	    tga->hdr.depth != 24 &&
-	    tga->hdr.depth != 32) 
+	    tga->hdr.depth != 32)
 	{
 		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
 		return __TGA_LASTERR(tga);
@@ -154,7 +154,7 @@ TGAReadHeader (TGA *tga)
 }
 
 int
-TGAReadImageId(TGA    *tga, 
+TGAReadImageId(TGA    *tga,
 	       TGAData *data)
 {
 	if (!tga) return TGA_ERROR;
@@ -276,7 +276,7 @@ TGAReadColorMap (TGA 	  *tga,
 }
 
 int
-TGAReadRLE(TGA   *tga, 
+TGAReadRLE(TGA   *tga,
 	   tbyte *buf)
 {
 	tbyte packet_head;

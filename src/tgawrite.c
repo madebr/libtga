@@ -25,6 +25,9 @@
 #include <tga.h>
 #include "tga_private.h"
 
+#define LSB_SH(SHORT) ((SHORT) & 0xff)
+#define MSB_SH(SHORT) ((SHORT) >> 8)
+
 size_t
 TGAWrite(TGA 	     *tga, 
 	 const tbyte *buf, 
@@ -32,6 +35,9 @@ TGAWrite(TGA 	     *tga,
 	 size_t       n)
 {
 	size_t wrote = fwrite(buf, size, n, tga->fd);
+	if (wrote != n) {
+		TGA_ERROR(tga, TGA_WRITE_FAIL);
+	}
 	tga->off = ftell(tga->fd);
 	return wrote;
 }
@@ -80,8 +86,6 @@ int TGAWriteImage(TGA 	  *tga,
 int
 TGAWriteHeader(TGA *tga)
 {
-	tbyte *tmp;
-
 	if (!tga) return 0;
 
 	__TGASeek(tga, 0, SEEK_SET);
@@ -89,54 +93,47 @@ TGAWriteHeader(TGA *tga)
 		return __TGA_LASTERR(tga);
 	}
 
-	tmp = (tbyte*)malloc(18);
-	if (!tmp) {
-		TGA_ERROR(tga, TGA_OOM);
-		return 0;
-	}
+	tbyte tmp[TGA_HEADER_SIZE];
 
 	tmp[0] = tga->hdr.id_len;
 	tmp[2] = tga->hdr.img_t;
 		
 	if (tga->hdr.map_t != 0) {
 		tmp[1] = 1;
-		tmp[3] = tga->hdr.map_first % 256;
-		tmp[4] = tga->hdr.map_first /256;
-		tmp[5] = tga->hdr.map_len % 256;
-		tmp[6] = tga->hdr.map_len / 256;
+		tmp[3] = LSB_SH(tga->hdr.map_first);
+		tmp[4] = MSB_SH(tga->hdr.map_first);
+		tmp[5] = LSB_SH(tga->hdr.map_len);
+		tmp[6] = MSB_SH(tga->hdr.map_len);
 		tmp[7] = tga->hdr.map_entry;
 	} else {
 		tmp[1] = 0;
 		memset(tmp + 4, 0, 5);
 	}
-	
-	tmp[8] = tga->hdr.x % 256;
-	tmp[9] = tga->hdr.x / 256;
-	tmp[10] = tga->hdr.y % 256;
-	tmp[11] = tga->hdr.y / 256;
-	tmp[12] = tga->hdr.width % 256;
-	tmp[13] = tga->hdr.width / 256;
-	tmp[14] = tga->hdr.height % 256;
-	tmp[15] = tga->hdr.height / 256;
+
+	tmp[8] = LSB_SH(tga->hdr.x);
+	tmp[9] = MSB_SH(tga->hdr.x);
+	tmp[10] = LSB_SH(tga->hdr.y);
+	tmp[11] = MSB_SH(tga->hdr.y);
+	tmp[12] = LSB_SH(tga->hdr.width);
+	tmp[13] = MSB_SH(tga->hdr.width);
+	tmp[14] = LSB_SH(tga->hdr.height);
+	tmp[15] = MSB_SH(tga->hdr.height);
 	tmp[16] = tga->hdr.depth;
 	tmp[17] = tga->hdr.alpha;
 	tmp[17] |= (tga->hdr.horz << 4);
 	tmp[17] |= (tga->hdr.vert << 5);
 
-	if (!TGAWrite(tga, tmp, TGA_HEADER_SIZE, 1)) {
-		free(tmp);
-		TGA_ERROR(tga, TGA_WRITE_FAIL);
-		return 0;
+	TGAWrite(tga, tmp, TGA_HEADER_SIZE, 1);
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
 
-	free(tmp);
-	tga->last = TGA_OK;
 	return TGA_OK;
 }
 
 
 int
-TGAWriteImageId(TGA 	    *tga, 
+TGAWriteImageId(TGA 	    *tga,
 		const tbyte *buf)
 {
 	if (!tga || !buf || tga->hdr.id_len == 0) return 0;
