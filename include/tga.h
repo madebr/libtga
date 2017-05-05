@@ -153,7 +153,7 @@ int TGAWriteHeader(TGA *tga);
 
 int TGAWriteImageId(TGA *tga, TGAData *data);
 
-int TGAWriteColorMap(TGA *tga, tbyte *cmap, tuint32 flags);
+int TGAWriteColorMap(TGA *tga, TGAData *data);
 
 size_t TGAWriteScanlines(TGA *tga, tbyte *buf, size_t sln, size_t n,
 			      tuint32 flags);
