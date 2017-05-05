@@ -67,10 +67,11 @@ int TGAWriteImage(TGA 	  *tga,
 		}
 	}
 
-	if (TGAWriteHeader(tga) != TGA_OK) {
-		TGA_ERROR(tga, tga->last);
+	TGAWriteHeader(tga);
+	if (!__TGA_SUCCEEDED(tga)) {
+		return __TGA_LASTERR(tga);
 	}
-	
+
 	return tga->last;
 }
 
@@ -198,63 +199,70 @@ int
 TGAWriteRLE(TGA   *tga, 
 	    tbyte *buf)
 {
-	tuint8 *from, repeat = 0, direct = 0, bytes = tga->hdr.depth / 8;
-	tshort x;
-	tlong width = tga->hdr.width;
-	FILE *fd = tga->fd;
-	
-	if (!tga || !buf) return 0;
+	if (!tga) return TGA_ERROR;
+	if (!buf) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
 
-	from = buf;
-	
-	for (x = 1; x < width; ++x) {
-		if (memcmp(buf, buf + bytes, bytes)) {
-			if (repeat) {
-				putc(128 + repeat, fd);
-				fwrite(from, bytes, 1, fd);
-				from = buf + bytes; 
-				repeat = 0;
-				direct = 0;
-			} else { 
-				direct += 1;
+	const tbyte sample_bytes = tga->hdr.depth / 8;
+	tuint8 repetition = 0;
+	tuint8 raw = 0;
+	FILE *fd = tga->fd;
+
+	tuint8 *sample_start = buf;
+
+	for (tshort x = 1; x < tga->hdr.width; ++x) {
+		if (memcmp(buf, buf + sample_bytes, sample_bytes)) {
+			if (repetition) {
+				tbyte packet_head = repetition | 0x80;
+				TGAWrite(tga, &packet_head, 1, 1);
+				TGAWrite(tga, sample_start, sample_bytes, 1);
+				sample_start = buf + sample_bytes;
+				repetition = 0;
+				raw = 0;
+			} else {
+				raw += 1;
 			}
 		} else {
-			if (direct) {
-				putc(direct - 1, fd);
-				fwrite(from, bytes, direct, fd);
-				from = buf; 
-				direct = 0;
-				repeat = 1;
+			if (raw) {
+				tbyte packet_head = (raw - 1) | 0x00;
+				TGAWrite(tga, &packet_head, 1, 1);
+				TGAWrite(tga, sample_start, sample_bytes, raw);
+				sample_start = buf;
+				raw = 0;
+				repetition = 1;
 			} else {
-			      repeat += 1;
+				repetition += 1;
 			}
 		}
-		if (repeat == 128) {
+		if (repetition == 0x80) {
 			putc(255, fd);
-			fwrite(from, bytes, 1, fd);
-			from = buf + bytes;
-			direct = 0;
-			repeat = 0;
-		} else if (direct == 128) {
+			fwrite(sample_start, sample_bytes, 1, fd);
+			sample_start = buf + sample_bytes;
+			raw = 0;
+			repetition = 0;
+		} else if (raw == 128) {
 			putc(127, fd);
-			fwrite(from, bytes, direct, fd);
-			from = buf + bytes;
-			direct = 0;
-			repeat = 0;
+			fwrite(sample_start, sample_bytes, raw, fd);
+			sample_start = buf + sample_bytes;
+			raw = 0;
+			repetition = 0;
 		}
-		buf += bytes;
+		buf += sample_bytes;
 	}
 
-	if (repeat > 0) {
-		putc(128 + repeat, fd);
-		fwrite(from, bytes, 1, fd);
+	if (repetition > 0) {
+		tbyte packet_head = repetition | 0x80;
+		TGAWrite(tga, &packet_head, 1, 1);
+		TGAWrite(tga, sample_start, sample_bytes, 1);
 	} else {
-		putc(direct, fd);
-		fwrite(from, bytes, direct + 1, fd);
+		tbyte packet_head = raw | 0x00;
+		TGAWrite(tga, &packet_head, 1, 1);
+		TGAWrite(tga, sample_start, sample_bytes, raw + 1);
 	}
 
-	tga->last = TGA_OK;
-	return TGA_OK;
+	return __TGA_LASTERR(tga);
 }
 
 
