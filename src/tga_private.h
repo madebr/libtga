@@ -29,17 +29,21 @@ tuint8 TGA_handle_set_error(TGA *tga, tuint8 code);
 #define TGA_DBG_PRINTF(...) fprintf(stderr, __VA_ARGS__)
 #include <errno.h>
 #include <string.h>
+#define TGA_PRINT_ERRNO() do { \
+		if (errno) { \
+			TGA_DBG_PRINTF("errno=%d, %s\n", errno, strerror(errno)); \
+		} \
+	} while (0)
 #else
 #define TGA_DBG_PRINTF(...)
+#define TGA_PRINT_ERRNO()
 #endif
 
 
 #define TGA_ERROR(tga, code) \
 	do { \
 		TGA_DBG_PRINTF("%s:%u %s\n", __FILE__, __LINE__, TGAStrErrorCode(code)); \
-                if (errno) { \
-                    TGA_DBG_PRINTF("errno=%d, %s\n", errno, strerror(errno)); \
-                } \
+		TGA_PRINT_ERRNO(); \
 		TGA_handle_set_error((tga), (code)); \
 	} while (0)
 
