@@ -6,6 +6,7 @@ add_library(example_utils
 set(EXAMPLES
     decode
     encode
+    sane
     tgadump
 )
 
