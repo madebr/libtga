@@ -15,8 +15,7 @@ void __TGAbgr2rgb(tbyte *data, size_t size, size_t stride);
 #define TGA_SCANLINE_SIZE(tga)	((tga)->hdr.width * (tga)->hdr.depth / 8)
 #define TGA_CAN_SWAP(depth)     (depth == 24 || depth == 32)
 
-#define TGA_IS_MAPPED(tga)      ((tga)->hdr.map_t == 1)
-#define TGA_IS_ENCODED(tga)     ((tga)->hdr.img_t > 8 && (tga)->hdr.img_t < 12)
+#define TGA_IS_BW(tga)          ((((tga)->hdr.img_t & 0x3)==0x3) ? 1 : 0)
 
 const char *__TGAStrError(tuint8 code);
 
@@ -26,9 +25,21 @@ tuint8 TGA_handle_set_error(TGA *tga, tuint8 code);
 
 #define __TGA_LASTERR(TGA) ((TGA)->last)
 
+#ifdef TGA_DEBUG
+#define TGA_DBG_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+#include <errno.h>
+#include <string.h>
+#else
+#define TGA_DBG_PRINTF(...)
+#endif
+
+
 #define TGA_ERROR(tga, code) \
 	do { \
-		fprintf(stderr, "libtga: %s:%u %s\n", __FILE__, __LINE__, TGAStrErrorCode(code)); \
+		TGA_DBG_PRINTF("%s:%u %s\n", __FILE__, __LINE__, TGAStrErrorCode(code)); \
+                if (errno) { \
+                    TGA_DBG_PRINTF("errno=%d, %s\n", errno, strerror(errno)); \
+                } \
 		TGA_handle_set_error((tga), (code)); \
 	} while (0)
 

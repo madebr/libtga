@@ -20,10 +20,10 @@
  */
  
 #ifndef __TGA_H
-#define __TGA_H 1
+#define __TGA_H
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,8 +44,30 @@ extern "C" {
 /* orientation */
 #define TGA_BOTTOM	0x0
 #define TGA_TOP		0x1
-#define	TGA_LEFT	0x0
-#define	TGA_RIGHT	0x1
+#define TGA_LEFT	0x0
+#define TGA_RIGHT	0x1
+
+/* image types */
+#define TGA_IMGTYPE_NOIMAGE             0
+#define TGA_IMGTYPE_UNCOMP_CMAP         1
+#define TGA_IMGTYPE_UNCOMP_TRUEC        2
+#define TGA_IMGTYPE_UNCOMP_BW           3
+#define TGA_IMGTYPE_RLE_CMAP            9
+#define TGA_IMGTYPE_RLE_TRUEC          10
+#define TGA_IMGTYPE_RLE_BW             11
+
+#define TGA_IMGTYPE_CMAP_FLAG           0x1
+#define TGA_IMGTYPE_TRUEC_FLAG          0x2
+#define TGA_IMGTYPE_BW_FLAG             0x3
+
+#define TGA_IMGTYPE_AVAILABLE(tga)      (((tga)->hdr.img_t) != 0)
+#define TGA_IMGTYPE_IS_MAPPED(tga)      ((((tga)->hdr.img_t) & 0x3) == 0x1)
+#define TGA_IMGTYPE_IS_TRUEC(tga)       ((((tga)->hdr.img_t) & 0x3) == 0x2)
+#define TGA_IMGTYPE_IS_BW(tga)          ((((tga)->hdr.img_t) & 0x3) == 0x3)
+#define TGA_IMGTYPE_IS_ENCODED(tga)     ((((tga)->hdr.img_t) & 0x8) == 0x8)
+
+#define TGA_HAS_ID(tga)         ((tga)->hdr.id_len != 0)
+#define TGA_IS_MAPPED(tga)      ((tga)->hdr.map_t == 1)
 
 /* error codes */
 enum {
@@ -77,27 +99,27 @@ typedef void (*TGAErrorProc)(TGA*, int);
 
 /* TGA image header */
 struct _TGAHeader {
-	tbyte	id_len;		/* image id length */
-	tbyte	map_t;		/* color map type */
-	tbyte	img_t;		/* image type */
-	tshort	map_first;	/* index of first map entry */
-	tshort	map_len;	/* number of entries in color map */
-	tbyte	map_entry;	/* bit-depth of a cmap entry */
-	tshort	x;		/* x-coordinate */
-	tshort	y;		/* y-coordinate */
-	tshort	width;		/* width of image */
-	tshort	height;		/* height of image */
-	tbyte	depth;		/* pixel-depth of image */
-	tbyte	alpha;		/* alpha bits */
-	tbyte	horz;		/* horizontal orientation */
-	tbyte	vert;		/* vertical orientation */
+	tbyte	id_len;		/* F1: image id length */
+	tbyte	map_t;		/* F2: color map type */
+	tbyte	img_t;		/* F3: image type */
+	tshort	map_first;	/* F4.1: index of first map entry */
+	tshort	map_len;	/* F4.2: number of entries in color map */
+	tbyte	map_entry;	/* F4.3: bit-depth of a cmap entry */
+	tshort	x;		/* F5.1: x-coordinate */
+	tshort	y;		/* F5.2: y-coordinate */
+	tshort	width;		/* F5.3: width of image */
+	tshort	height;		/* F5.4: height of image */
+	tbyte	depth;		/* F5.5: pixel-depth of image */
+	tbyte	alpha;		/* F5.6 (bits 3-0): alpha bits */
+	tbyte	horz;		/* F5.6 (bit 4): horizontal orientation */
+	tbyte	vert;		/* F5.6 (bit 5): vertical orientation */
 };
 
 /* TGA image data */
-struct _TGAData {  
-	tbyte	*img_id;	/* image id */
-	tbyte	*cmap;		/* color map */
-	tbyte	*img_data;	/* image data */
+struct _TGAData {
+	tbyte	*img_id;	/* F6: image id */
+	tbyte	*cmap;		/* F7: color map */
+	tbyte	*img_data;	/* F8: image data */
 	tuint32	 flags;
 };
 

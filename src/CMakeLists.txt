@@ -19,6 +19,14 @@ target_include_directories(libtga
         "${LIBTGA_PROJECT_PATH}/include"
 )
 
+if (TGA_DEBUG)
+    target_compile_definitions(libtga
+        PRIVATE
+            "TGA_DEBUG"
+    )
+endif()
+
+
 install(
     TARGETS libtga
     LIBRARY DESTINATION lib

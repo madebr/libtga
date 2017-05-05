@@ -85,6 +85,7 @@ TGAReadImage(TGA     *tga,
 	return TGA_OK;
 }
 
+
 void
 TGAFreeTGAData(TGAData *data)
 {
@@ -94,7 +95,11 @@ TGAFreeTGAData(TGAData *data)
 		free(data->img_data);
 	if (data->img_id)
 		free(data->img_id);
+	data->cmap = 0;
+	data->img_data = 0;
+	data->img_id = 0;
 }
+
 
 int
 TGAReadHeader (TGA *tga)
@@ -106,17 +111,11 @@ TGAReadHeader (TGA *tga)
 		return __TGA_LASTERR(tga);
 	}
 
-	tbyte *tmp = (tbyte*) malloc(TGA_HEADER_SIZE);
-	if (!tmp) {
-		TGA_ERROR(tga, TGA_OOM);
-		return __TGA_LASTERR(tga);
-	}
-
+	tbyte tmp[TGA_HEADER_SIZE];
 	bzero(tmp, TGA_HEADER_SIZE);
 
 	TGARead(tga, tmp, TGA_HEADER_SIZE, 1);
 	if (!__TGA_SUCCEEDED(tga)) {
-		free(tmp);
 		return __TGA_LASTERR(tga);
 	}
 
@@ -135,9 +134,8 @@ TGAReadHeader (TGA *tga)
 	tga->hdr.horz		= (tmp[17] & 0x10) ? TGA_RIGHT : TGA_LEFT;
 	tga->hdr.vert		= (tmp[17] & 0x20) ? TGA_TOP : TGA_BOTTOM;
 
-	if (tga->hdr.map_t && tga->hdr.depth != 8) {
+	if (TGA_IS_MAPPED(tga) && tga->hdr.depth != 8) {
 		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
-		free(tmp);
 		return __TGA_LASTERR(tga);
 	}
 
@@ -148,11 +146,9 @@ TGAReadHeader (TGA *tga)
 	    tga->hdr.depth != 32) 
 	{
 		TGA_ERROR(tga, TGA_UNKNOWN_SUB_FORMAT);
-		free(tmp);
 		return __TGA_LASTERR(tga);
 	}
 
-	free(tmp);
 	tga->last = TGA_OK;
 	return __TGA_LASTERR(tga);
 }
@@ -166,7 +162,7 @@ TGAReadImageId(TGA    *tga,
 		TGA_ERROR(tga, TGA_ERROR);
 		return __TGA_LASTERR(tga);
 	}
-	if (tga->hdr.id_len == 0) {
+	if (!TGA_HAS_ID(tga)) {
 		data->flags &= ~TGA_IMAGE_ID;
 		return TGA_OK;
 	}
@@ -283,35 +279,46 @@ int
 TGAReadRLE(TGA   *tga, 
 	   tbyte *buf)
 {
-	int head;
-	char sample[4];
-	tbyte k, repeat = 0, direct = 0, bytes = tga->hdr.depth / 8;
-	tshort x;
-	tshort width = tga->hdr.width;
-	FILE *fd = tga->fd;
+	tbyte packet_head;
+	const tbyte sample_bytes = tga->hdr.depth / 8;
+	tbyte sample[sample_bytes];
+	tbyte repetition = 0;
+	tbyte raw = 0;
 
 	if (!tga || !buf) return TGA_ERROR;
 
-	for (x = 0; x < width; ++x) {
-		if (repeat == 0 && direct == 0) {
-			head = getc(fd);
-			if (head == EOF) return TGA_ERROR;
-			if (head >= 128) {
-				repeat = head - 127;
-				if (fread(sample, bytes, 1, fd) < 1) 
-					return TGA_ERROR;
+	for (tshort x = 0; x < tga->hdr.width; ++x) {
+		if (repetition == 0 && raw == 0) {
+			TGARead(tga, &packet_head, 1, 1);
+			if (!__TGA_SUCCEEDED(tga)) {
+				return __TGA_LASTERR(tga);
+			}
+			if (packet_head & 0x80) {
+				repetition = 1 + (packet_head & 0x7f);
+				TGARead(tga, sample, sample_bytes, 1);
+				if (!__TGA_SUCCEEDED(tga)) {
+					return __TGA_LASTERR(tga);
+				}
 			} else {
-				direct = head + 1;
+				raw = packet_head + 1;
 			}
 		}
-		if (repeat > 0) {
-			for (k = 0; k < bytes; ++k) buf[k] = sample[k];
-			--repeat;
+		if (repetition > 0) {
+			for (tbyte k = 0; k < sample_bytes; ++k) {
+				buf[k] = sample[k];
+			}
+			--repetition;
 		} else {
-			if (fread(buf, bytes, 1, fd) < 1) return TGA_ERROR;
-			--direct;
+			TGARead(tga, sample, sample_bytes, 1);
+			if (!__TGA_SUCCEEDED(tga)) {
+				return __TGA_LASTERR(tga);
+			}
+			for (tbyte k = 0; k < sample_bytes; ++k) {
+				buf[k] = sample[k];
+			}
+			--raw;
 		}
-		buf += bytes;
+		buf += sample_bytes;
 	}
 
 	tga->last = TGA_OK;
@@ -324,7 +331,7 @@ TGAReadScanlines(TGA	 *tga,
 {
 	if (!tga) return TGA_ERROR;
 
-	if (!tga->hdr.img_t) {
+	if (!TGA_IMGTYPE_AVAILABLE(tga)) {
 		data->flags &= ~TGA_IMAGE_DATA;
 		return TGA_OK;
 	}
@@ -353,7 +360,7 @@ TGAReadScanlines(TGA	 *tga,
 		}
 	}
 
-	if (TGA_IS_ENCODED(tga)) {
+	if (TGA_IMGTYPE_IS_ENCODED(tga)) {
 		for(size_t sln_i = sln_start; sln_i < sln_stop; ++sln_i) {
 			TGAReadRLE(tga, data->img_data + (sln_i * sln_size));
 			if (!__TGA_SUCCEEDED(tga)) {
@@ -361,7 +368,7 @@ TGAReadScanlines(TGA	 *tga,
 				return __TGA_LASTERR(tga);
 			}
 		}
-		tga->hdr.img_t -= 8;
+		tga->hdr.img_t &= ~0x8; //FIXME: remove (TGA represents file)
 	} else {
 		TGARead(tga, data->img_data + (sln_start * sln_size),
 			sln_size, sln_stop - sln_start);
