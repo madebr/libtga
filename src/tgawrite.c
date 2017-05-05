@@ -48,13 +48,13 @@ int TGAWriteImage(TGA 	  *tga,
 {
 	if (!tga) return TGA_ERROR;
 
-	if ((data->flags & TGA_IMAGE_ID) && tga->hdr.id_len > 0) {
-		if (TGAWriteImageId(tga, data->img_id) != TGA_OK) {
-			data->flags &= ~TGA_IMAGE_ID;
-			TGA_ERROR(tga, tga->last);
-			tga->hdr.id_len = 0;
+	if (data->flags & TGA_IMAGE_ID) {
+		TGAWriteImageId(tga, data);
+		if (!__TGA_SUCCEEDED(tga)) {
+			return __TGA_LASTERR(tga);
 		}
-	}	
+	}
+
 	if (data->flags & TGA_IMAGE_DATA) {
 		if (data->cmap) {
 			if (!TGAWriteColorMap(tga, data->cmap, data->flags)) {
@@ -133,22 +133,34 @@ TGAWriteHeader(TGA *tga)
 
 
 int
-TGAWriteImageId(TGA 	    *tga,
-		const tbyte *buf)
+TGAWriteImageId(TGA	*tga,
+		TGAData	*data)
 {
-	if (!tga || !buf || tga->hdr.id_len == 0) return 0;
-		
+	if (!tga) return TGA_ERROR;
+
+	if (tga->hdr.id_len == 0) return TGA_OK;
+
+	if (!data) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
+
+	if (!data->img_id) {
+		data->flags &= ~TGA_IMAGE_ID;
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
+
 	__TGASeek(tga, TGA_HEADER_SIZE, SEEK_SET);
 	if (!__TGA_SUCCEEDED(tga)) {
 		return __TGA_LASTERR(tga);
 	}
 
-	if (!TGAWrite(tga, buf, tga->hdr.id_len, 1)) {
+	if (!TGAWrite(tga, data->img_id, tga->hdr.id_len, 1)) {
 		TGA_ERROR(tga, TGA_WRITE_FAIL);
-		return 0;
+		return __TGA_LASTERR(tga);
 	}
-		
-	tga->last = TGA_OK;
+
 	return TGA_OK;
 }
 

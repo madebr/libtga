@@ -151,7 +151,7 @@ void TGAFreeTGAData(TGAData *data);
 
 int TGAWriteHeader(TGA *tga);
 
-int TGAWriteImageId(TGA *tga, const tbyte *id);
+int TGAWriteImageId(TGA *tga, TGAData *data);
 
 int TGAWriteColorMap(TGA *tga, tbyte *cmap, tuint32 flags);
 
