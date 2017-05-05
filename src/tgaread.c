@@ -282,26 +282,24 @@ int
 TGAReadRLE(TGA   *tga,
 	   tbyte *buf)
 {
+	if (!tga) return TGA_ERROR;
+	if (!buf) {
+		TGA_ERROR(tga, TGA_ERROR);
+		return __TGA_LASTERR(tga);
+	}
+
 	tbyte packet_head;
 	const tbyte sample_bytes = tga->hdr.depth / 8;
 	tbyte sample[sample_bytes];
 	tbyte repetition = 0;
 	tbyte raw = 0;
 
-	if (!tga || !buf) return TGA_ERROR;
-
 	for (tshort x = 0; x < tga->hdr.width; ++x) {
 		if (repetition == 0 && raw == 0) {
 			TGARead(tga, &packet_head, 1, 1);
-			if (!__TGA_SUCCEEDED(tga)) {
-				return __TGA_LASTERR(tga);
-			}
 			if (packet_head & 0x80) {
 				repetition = 1 + (packet_head & 0x7f);
 				TGARead(tga, sample, sample_bytes, 1);
-				if (!__TGA_SUCCEEDED(tga)) {
-					return __TGA_LASTERR(tga);
-				}
 			} else {
 				raw = packet_head + 1;
 			}
@@ -313,9 +311,6 @@ TGAReadRLE(TGA   *tga,
 			--repetition;
 		} else {
 			TGARead(tga, sample, sample_bytes, 1);
-			if (!__TGA_SUCCEEDED(tga)) {
-				return __TGA_LASTERR(tga);
-			}
 			for (tbyte k = 0; k < sample_bytes; ++k) {
 				buf[k] = sample[k];
 			}
@@ -324,8 +319,11 @@ TGAReadRLE(TGA   *tga,
 		buf += sample_bytes;
 	}
 
-	tga->last = TGA_OK;
-	return TGA_OK;
+	if (repetition || raw) { //FIXME: TGA v1 does allow cross scanline RLE
+		TGA_ERROR(tga, TGA_ERROR);
+	}
+
+	return __TGA_LASTERR(tga);;
 }
 
 int
@@ -394,6 +392,7 @@ TGAReadScanlines(TGA	 *tga,
 			data->flags &= ~TGA_COLOR_MAP;
 			return __TGA_LASTERR(tga);
 		}
+		tga->hdr.depth = 24; //FIXME: do not change tga
 		free(data->img_data);
 		data->img_data = new_img;
 	}
